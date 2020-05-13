@@ -3,6 +3,8 @@ name="eosio-client"
 version="0.1.0"
 authors = ["Ian Holsman <ian@holsman.com.au>"]
 edition = "2018"
+license = "Apache-2.0"
+description="sample client utilizing EOSIO API"
 
 [workspace]
 members = [

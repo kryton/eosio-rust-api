@@ -24,6 +24,8 @@ fn run() -> Result<bool> {
 }
 
 fn main() {
+    eprintln!("This is non-operational. need eosio-api to be semi-operational first");
+    assert!(false);
     if let Err(ref e) = run() {
         println!("error: {}", e);
 

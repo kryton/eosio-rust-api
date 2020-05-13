@@ -19,3 +19,4 @@ but can't execute actions or pack/unpack abieos things.
 
 I am also new to Rust. Feel free to raise issues on style/technique/idiomatic issues. I'm here to learn.
 
+and yes. I've been told '_I code pretty well for a manager_' before.

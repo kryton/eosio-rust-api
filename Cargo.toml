@@ -1,0 +1,16 @@
+[package]
+name="eosio-client"
+version="0.1.0"
+authors = ["Ian Holsman <ian@holsman.com.au>"]
+edition = "2018"
+
+[workspace]
+members = [
+    "eosio-api",
+    "eosio-keys",
+]
+
+[dependencies]
+eosio-api= { path = "./eosio-api"}
+eosio-keys = {path = "./eosio-keys"}
+error-chain = "0.12.2"

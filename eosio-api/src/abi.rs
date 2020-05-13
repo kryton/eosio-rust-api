@@ -83,7 +83,33 @@ mod test {
     #[test]
     fn name_to_str_test() {
         let v = ABIName { value: 0x5f2936be6a5cab80 };
-        assert_eq!(v.to_str().unwrap(), "fwonhjnefmps")
+        assert_eq!(v.to_str().unwrap(), "fwonhjnefmps");
+        let value = 0;
+        assert_eq!((ABIName { value }).to_str().unwrap(), ".");
+
+        let value = 3589368903014285312;
+        assert_eq!((ABIName { value }).to_str().unwrap(), "abc");
+
+        let value = 614178399182651392;
+        assert_eq!((ABIName { value }).to_str().unwrap(), "123");
+
+        let value = 108209673814966326;
+        assert_eq!((ABIName { value }).to_str().unwrap(), ".a.b.c.1.2.3a");
+
+        let value = 3589369488740450304;
+        assert_eq!((ABIName { value }).to_str().unwrap(), "abc.123");
+
+        let value = 614251623682315983;
+        assert_eq!((ABIName { value }).to_str().unwrap(), "12345abcdefgj");
+
+        let value = 7754926748989239183;
+        assert_eq!((ABIName { value }).to_str().unwrap(), "hijklmnopqrsj");
+
+        let value = 576460752303423488;
+        assert_eq!((ABIName { value }).to_str().unwrap(), "1");
+
+        let value = 3458764513820540928;
+        assert_eq!((ABIName { value }).to_str().unwrap(), "a");
     }
 
     #[test]

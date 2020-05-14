@@ -272,14 +272,16 @@ impl EOSSignature {
         secp.verify(&message, &self.sig, &pubkey.public)?;
         Ok(true)
     }
-    pub fn to_string(&self) -> Result<String> {
-        check_encode(&self.sig.to_string().as_bytes(), "K1")
+    pub fn to_eos_string(&self) -> Result<String> {
+        let s = ["SIG_K1_", &check_encode(&self.sig.to_string().as_bytes(), "K1")?].concat();
+        Ok(s)
     }
 }
 
 #[cfg(test)]
 mod sig_test {
     use crate::{EOSPrivateKey, EOSPublicKey};
+    use crate::errors::Result;
 
     #[test]
     fn sig_from() {
@@ -295,52 +297,42 @@ mod sig_test {
     }
 
     #[test]
-    fn sig_fromstr() {
+    fn sig_fromstr() -> Result<()>{
         let sig_str = "SIG_K1_KmQRYtEYYqAKMyi1RjQ3YasVuBpqpjyUM4eyQGrKvushRkVN7GdyfkJLZPqoskXPqj58BAVQdJN4CJeW5APBVjZZAQ5R6h";
-        let sig = super::EOSSignature::from_string(sig_str);
-        assert!(sig.is_ok());
+        let _sig2="SIG_K1_xcuCzcbQBjUFxm5FbUi1iBLot5UjuwaaP6bwNhNF8TofjrdakpjqstPeWnQ8iNUxEC68tiZp5qDxHYHFiVpajVLuPofmYPTMpuDyFSyxEr2P6VULHrnNNidYLu3TcG8gQFqdPyhWzhotcX4VDmWTRxy1KrMjqbyxzsr3PaXDJ8tHJrsahAbQciQHbYMQoV32gc7pYbA";
+        let sig = super::EOSSignature::from_string(sig_str)?;
+
+        let sig2 = super::EOSSignature::from_string(_sig2);
+        assert!(!sig2.is_ok());
+        Ok(())
     }
 
     #[test]
-    fn sig_verify_msg() {
+    fn sig_verify_msg() -> Result<()>{
         let msg = "Regrets and I've had a few But then again, too few to mention I did what I had to do I saw it through without exemption";
         let sig_str2 = "SIG_K1_K63SvSQTHGk7GhAfg6gtZsceSnA67bKndpHRDwW7T7v8BJXY2UnVpEK7X2GvX9NMYhM5ttS4PbFNQCxsPnN7FvKPreX8Lr";
         let pubkey = "EOS7ctUUZhtCGHnxUnh4Rg5eethj3qNS5S9fijyLMKgRsBLh8eMBB";
-        let sig2 = super::EOSSignature::from_string(sig_str2);
-        match sig2 {
-            Err(_) => assert!(false),
-            Ok(sig) => {
-                let pub2 = EOSPublicKey::from_eos_string(pubkey);
-                match pub2 {
-                    Err(_) => assert!(false),
-                    Ok(public) => {
-                        let verify = sig.verify(msg.as_bytes(), public);
-                        assert!(verify.is_ok());
-                    }
-                }
-            }
-        }
+        let sig2 = super::EOSSignature::from_string(sig_str2)?;
+        let public = EOSPublicKey::from_eos_string(pubkey)?;
+        let verify = sig2.verify(msg.as_bytes(), public)?;
+
+        Ok(())
     }
 
     #[test]
-    fn sig_sign_test() {
+    fn sig_sign_test() -> Result<()> {
         let priv_str = "5JYgAoe1obNY2YNvoE69cwBjwpCjhM2q8cYbw4DMf6Sts1jQ5wP";
         let msg = "Regrets and I've had a few But then again, too few to mention I did what I had to do I saw it through without exemption";
         let _sig_str = "SIG_K1_K63SvSQTHGk7GhAfg6gtZsceSnA67bKndpHRDwW7T7v8BJXY2UnVpEK7X2GvX9NMYhM5ttS4PbFNQCxsPnN7FvKPreX8Lr";
 
-        match EOSPrivateKey::from_string(priv_str) {
-            Err(_) => assert!(false),
-            Ok(private) => match private.sign(msg.as_bytes()) {
-                Err(_) => assert!(false),
-                Ok(sig) => {
-                    let public = private.to_public();
-                    match sig.verify(msg.as_bytes(), public) {
-                        Err(_) => assert!(false),
-                        Ok(b) => assert!(b),
-                    }
-                }
-            },
-        }
+        let private = EOSPrivateKey::from_string(priv_str)?;
+
+        let sig = private.sign(msg.as_bytes())?;
+        let public = private.to_public();
+        let result = sig.verify(msg.as_bytes(), public)?;
+        assert!(result);
+
+        Ok(())
     }
 }
 

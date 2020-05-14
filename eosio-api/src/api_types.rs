@@ -113,12 +113,14 @@ pub struct GetAccount {
     account_name: String,
     head_block_num: usize,
     privileged: bool,
-    last_code_update: String,
+    #[serde(with = "eosio_datetime_format")]
+    last_code_update: DateTime<Utc>,
     #[serde(with = "eosio_datetime_format")]
     head_block_time: DateTime<Utc>,
-    created: String,
-    core_liquid_balance: String,
-    ram_quota: usize,
+    #[serde(with = "eosio_datetime_format")]
+    created: DateTime<Utc>,
+    core_liquid_balance: Option<String>,
+    ram_quota: isize,
     net_weight: isize,
     cpu_weight: isize,
     ram_usage: usize,

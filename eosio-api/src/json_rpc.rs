@@ -11,7 +11,7 @@ use crate::api_types::{GetAccount, GetAbi, RequiredKeys, GetInfo, TransactionIn,
 use eosio_keys::{EOSPublicKey, EOSPrivateKey, EOSSignature};
 use crate::wasm::WASM;
 use crate::abi::ABIName;
-
+use crate::numeric::binary_to_base58;
 
 
 pub struct EOSRPC {
@@ -78,9 +78,12 @@ impl EOSRPC {
 
         let packed_trx = serde_json::to_string(transaction)?;
         let sig: EOSSignature = private_key.sign(packed_trx.as_bytes())?;
-        let trx = vec_u8_to_str(packed_trx.as_bytes().to_vec())?;
+        let sig_str = sig.to_eos_string().unwrap();
+        eprintln!("SIG {} {}", sig_str,sig_str.len());
+        //let trx = vec_u8_to_str(packed_trx.as_bytes().to_vec())?;
+        let trx = binary_to_base58(packed_trx.as_bytes().to_vec(),12);
         let in_val = serde_json::json!(PackedTransactionIn{
-            signatures: vec![sig.to_string().unwrap()],
+            signatures: vec![sig_str],
             compression: "none".to_string(),
             packed_context_free_data: "".to_string(),
             packed_trx: trx,
@@ -88,7 +91,8 @@ impl EOSRPC {
         
         match self.blocking_req("/v1/chain/push_transaction", in_val) {
             Err(e) => {
-                eprintln!("{:#?}",e)
+                eprintln!("{:#?}",e);
+                assert!(false)
             },
             Ok(s) => {
                 eprintln!("{}",s)
@@ -164,6 +168,7 @@ mod test {
 
     use crate::api_types::GetAccount;
 
+   // const TEST_HOST: &str = "http://127.0.0.1:8888";
     const TEST_HOST: &str = "https://api.testnet.eos.io";
     //const TEST_HOST: &str = "https://eos.greymass.com";
     //const TEST_HOST: &str = "https://chain.wax.io";

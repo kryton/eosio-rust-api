@@ -273,7 +273,8 @@ impl EOSSignature {
         Ok(true)
     }
     pub fn to_eos_string(&self) -> Result<String> {
-        let s = ["SIG_K1_", &check_encode(&self.sig.to_string().as_bytes(), "K1")?].concat();
+        let sig = check_encode(&self.sig.serialize_compact(), "K1")?;
+        let s = ["SIG_K1_", &sig].concat();
         Ok(s)
     }
 }
@@ -284,7 +285,7 @@ mod sig_test {
     use crate::errors::Result;
 
     #[test]
-    fn sig_from() {
+    fn sig_from() -> Result<()>{
         let sig_hex = [
             0xdc, 0x4d, 0xc2, 0x64, 0xa9, 0xfe, 0xf1, 0x7a, 0x3f, 0x25, 0x34, 0x49, 0xcf, 0x8c,
             0x39, 0x7a, 0xb6, 0xf1, 0x6f, 0xb3, 0xd6, 0x3d, 0x86, 0x94, 0x0b, 0x55, 0x86, 0x82,
@@ -292,8 +293,10 @@ mod sig_test {
             0x66, 0x27, 0xaa, 0x92, 0x2e, 0xfc, 0x04, 0x8f, 0xec, 0x0c, 0x88, 0x1c, 0x10, 0xc4,
             0xc9, 0x42, 0x8f, 0xca, 0x69, 0xc1, 0x32, 0xa2,
         ];
-        let sig = super::EOSSignature::from(&sig_hex);
-        assert!(sig.is_ok())
+        let sig = super::EOSSignature::from(&sig_hex)?;
+        assert_eq!(sig.to_eos_string()?,"SIG_K1_VpgDa143trq81f1YwnW3t4rPJic6QQzs2LUdSCNYeEHL8nHE3xo8AWk1LBuusDgSesqy4SR6nHt2zsLRpmeDpbBjTaA4R");
+
+        Ok(())
     }
 
     #[test]
@@ -304,6 +307,8 @@ mod sig_test {
 
         let sig2 = super::EOSSignature::from_string(_sig2);
         assert!(!sig2.is_ok());
+
+
         Ok(())
     }
 

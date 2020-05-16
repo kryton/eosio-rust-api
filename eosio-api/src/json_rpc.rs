@@ -1,26 +1,26 @@
-//use crate::errors::{Result, ErrorKind};
-
-//extern crate reqwest;
 use reqwest::blocking::Client;
 use reqwest::StatusCode;
 use serde_json::Value;
 use reqwest::header::{CONTENT_TYPE, HeaderValue};
 use crate::errors::{Result, ErrorKind};
-use crate::api_types::{GetAccount, GetAbi, RequiredKeys, GetInfo, TransactionIn, ActionIn, AuthorizationIn, ErrorReply, PackedTransactionIn};
-//use serde::Deserialize;
+use crate::api_types::{GetAccount, GetAbi, RequiredKeys, GetInfo, TransactionIn, ActionIn, AuthorizationIn, ErrorReply, PackedTransactionIn, GetCodeHash};
+
 use eosio_keys::{EOSPublicKey, EOSPrivateKey, EOSSignature};
 use crate::wasm::WASM;
 use crate::abi::ABIName;
 use crate::numeric::binary_to_base58;
 
+use chrono::{Utc, NaiveDateTime, DateTime, FixedOffset, TimeZone, Duration};
+use std::time::Instant;
+
 
 pub struct EOSRPC {
-    client: Client,
-    host: String,
+    pub client: Client,
+    pub host: String,
 }
 
 impl EOSRPC {
-    fn blocking_req(&self, url: &str, in_json: Value) -> Result<String> {
+    pub fn blocking_req(&self, url: &str, in_json: Value) -> Result<String> {
         let full_url = [&self.host, url].concat();
         let req = self.client.post(&full_url).json(&in_json);
         let response = req.send()?;
@@ -34,8 +34,8 @@ impl EOSRPC {
             Ok(response.text()?)
         } else {
             // TODO return the JSON error
-            let msg:ErrorReply = serde_json::from_str(&response.text()?).unwrap();
-            //eprintln!("{}",msg);
+            let msg: ErrorReply = serde_json::from_str(&response.text()?).unwrap();
+        //    eprintln!("{:#?}", msg);
             Err(ErrorKind::InvalidResponseStatus(msg.error).into())
         }
     }
@@ -60,8 +60,17 @@ impl EOSRPC {
         let ga: GetInfo = serde_json::from_str(&res).unwrap();
         Ok(ga)
     }
-    // TODO
+    pub fn get_code_hash(&self, account_name: &str) -> Result<GetCodeHash> {
+        let value = serde_json::json!({ "account_name": account_name });
+
+        let res = self.blocking_req("/v1/chain/get_code_hash", value)?;
+        let gc: GetCodeHash = serde_json::from_str(&res)?;
+        Ok(gc)
+    }
+
     pub fn get_required_keys(&self, transaction: &TransactionIn, keys: Vec<EOSPublicKey>) -> Result<RequiredKeys> {
+      //  let now = Instant::now();
+
         let mut key_str: Vec<String> = vec![];
         for key in keys {
             let x = key.to_eos_string()?;
@@ -69,33 +78,47 @@ impl EOSRPC {
         }
 
         let value = serde_json::json!({ "transaction": transaction, "available_keys":key_str});
+       // eprintln!("Req-Keys-start {:?}", now.elapsed());
         let res = self.blocking_req("/v1/chain/get_required_keys", value)?;
+      //  eprintln!("Req-Keys-back {:?}", now.elapsed());
         let ga: RequiredKeys = serde_json::from_str(&res).unwrap();
+       // eprintln!("Req-Keys-done {:?}", now.elapsed());
         Ok(ga)
     }
 
-    pub fn push_transaction(&self, private_key: EOSPrivateKey, transaction: &TransactionIn) -> Result<()> {
 
-        let packed_trx = serde_json::to_string(transaction)?;
+    pub fn push_transaction(&self, private_key: EOSPrivateKey, action: ActionIn, ref_block_num: usize, ref_block_prefix: usize, exp_time: DateTime<Utc>) -> Result<()> {
+        let now = Instant::now();
+
+        let packed_trx = serde_json::to_string(&action)?;
+        let ti = TransactionIn::simple(action, ref_block_num, ref_block_prefix, exp_time);
+        eprintln!("PT-1 {:?}", now.elapsed());
         let sig: EOSSignature = private_key.sign(packed_trx.as_bytes())?;
+        eprintln!("PT-2 {:?}", now.elapsed());
+        let valid_sig = "SIG_K1_KVLKbA96J7egJfZP56ddqFy6t2EAJR57bAd9vTnuYJS6S9exPA3GZkVCzvT5XrfWLVSYuBikYFiAKLQXWVguxYFovfmZJg";
         let sig_str = sig.to_eos_string().unwrap();
-        eprintln!("SIG {} {}", sig_str,sig_str.len());
-        //let trx = vec_u8_to_str(packed_trx.as_bytes().to_vec())?;
-        let trx = binary_to_base58(packed_trx.as_bytes().to_vec(),12);
+        eprintln!("PT-3 {:?}", now.elapsed());
+        // eprintln!("SIG {} {}", sig_str, sig_str.len());
+        // eprintln!("EQ? {} {}", valid_sig, valid_sig.len());
+        let trx = vec_u8_to_str(packed_trx.as_bytes().to_vec())?;
+
+        eprintln!("PT-4 {:?} bin->base58 {}", now.elapsed(), packed_trx.len());
         let in_val = serde_json::json!(PackedTransactionIn{
             signatures: vec![sig_str],
             compression: "none".to_string(),
             packed_context_free_data: "".to_string(),
             packed_trx: trx,
         });
-        
+        eprintln!("PT-5 {:?}", now.elapsed());
+
         match self.blocking_req("/v1/chain/push_transaction", in_val) {
             Err(e) => {
-                eprintln!("{:#?}",e);
+                eprintln!("PT-6 {:?}", now.elapsed());
+                eprintln!("{:#?}", e);
                 assert!(false)
-            },
+            }
             Ok(s) => {
-                eprintln!("{}",s)
+                eprintln!("{}", s)
             }
         }
 
@@ -117,8 +140,8 @@ fn byte_to_char(x: u8) -> char {
         x - 10 + 'a' as u8
     }) as char
 }
-pub fn vec_u8_to_str(out: Vec<u8>) -> Result<String> {
 
+pub fn vec_u8_to_str(out: Vec<u8>) -> Result<String> {
     let mut str = String::with_capacity(out.len());
     for x in out {
         str.push(byte_to_char((x & 0xf0).checked_shr(4).unwrap_or(0)));
@@ -126,25 +149,16 @@ pub fn vec_u8_to_str(out: Vec<u8>) -> Result<String> {
     }
     Ok(str)
 }
+
 impl ActionSetcodeData {
     fn to_str(&self) -> Result<String> {
         let code_len = self.wasm.code.len();
         let buf = self.name.value.to_ne_bytes().to_vec();
-        // let out:Vec<u8> = Vec::<u8>::with_capacity(code_len+buf.len()+2);
+// let out:Vec<u8> = Vec::<u8>::with_capacity(code_len+buf.len()+2);
         let vm: Vec<u8> = [self.vmtype, self.vmversion].to_vec();
         let c = self.wasm.code.to_vec();
         let out = [buf, vm, c].concat();
         Ok(vec_u8_to_str(out)?)
-            /*
-       let mut str = String::with_capacity(code_len + 13 + 2);
-
-        for x in out {
-            str.push(byte_to_char((x & 0xf0).checked_shr(4).unwrap_or(0)));
-            str.push(byte_to_char(x & 0x0f));
-        }
-        Ok(str)
-
-             */
     }
 }
 
@@ -164,23 +178,23 @@ pub fn create_setcode_action(name: ABIName, code: WASM) -> Result<ActionIn> {
 #[cfg(test)]
 mod test {
     use super::*;
-    //use reqwest::blocking::RequestBuilder;
 
     use crate::api_types::GetAccount;
 
-   // const TEST_HOST: &str = "http://127.0.0.1:8888";
+    //const TEST_HOST: &str = "http://127.0.0.1:8888";
     const TEST_HOST: &str = "https://api.testnet.eos.io";
-    //const TEST_HOST: &str = "https://eos.greymass.com";
-    //const TEST_HOST: &str = "https://chain.wax.io";
+//const TEST_HOST: &str = "https://eos.greymass.com";
+//const TEST_HOST: &str = "https://chain.wax.io";
 
     #[test]
-    fn blocking_req_test() {
+    fn blocking_req_test() ->Result<()>{
         let client = reqwest::blocking::Client::new();
         let eos = EOSRPC { client, host: String::from(TEST_HOST) };
         let ga = eos.get_account("eosio").unwrap();
 
-        let abi = eos.get_abi("eosio").unwrap();
-        //  eprintln!("{:#?}", abi);
+        let abi = eos.get_abi("eosio")?;
+        Ok(())
+//  eprintln!("{:#?}", abi);
     }
 
     #[test]
@@ -188,10 +202,8 @@ mod test {
         let client = reqwest::blocking::Client::new();
         let eos = EOSRPC { client, host: String::from(TEST_HOST) };
         let gi = eos.get_info().unwrap();
-        // eprintln!("{:#?}", gi);
+// eprintln!("{:#?}", gi);
     }
-
-    use chrono::{Utc, NaiveDateTime, FixedOffset, TimeZone, Duration};
 
 
     #[test]
@@ -219,8 +231,8 @@ mod test {
             EOSPublicKey::from_eos_string("EOS6zUgp7uAV1pCTXZMGJyH3dLUSWJUkZWGA9WpWxyP2pCT3mAkNX").unwrap(),
             EOSPublicKey::from_eos_string("EOS7ctUUZhtCGHnxUnh4Rg5eethj3qNS5S9fijyLMKgRsBLh8eMBB").unwrap(),
         ];
-        let gi:GetInfo = eos.get_info()?;
-        let exp_time = gi.head_block_time +  Duration::days(1);
+        let gi: GetInfo = eos.get_info()?;
+        let exp_time = gi.head_block_time + Duration::days(1);
         match WASM::read_file("test/good.wasm") {
             Err(_) => assert!(false),
             Ok(wasm) => {
@@ -233,11 +245,12 @@ mod test {
         }
         Ok(())
     }
+
     #[test]
     fn blocking_push_txn() -> Result<()> {
         let client = reqwest::blocking::Client::new();
         let eos = EOSRPC { client, host: String::from(TEST_HOST) };
-        let gi:GetInfo = eos.get_info()?;
+        let gi: GetInfo = eos.get_info()?;
         let exp_time = gi.head_block_time + Duration::days(1);
 
         let key = EOSPrivateKey::from_string("PVT_K1_2jH3nnhxhR3zPUcsKaWWZC9ZmZAnKm3GAnFD1xynGJE1Znuvjd")?;
@@ -245,8 +258,7 @@ mod test {
 
         let name = ABIName::from_str("fwonhjnefmps").unwrap();
         let action = create_setcode_action(name, wasm)?;
-        let ti = TransactionIn::simple(action, gi.head_block_num, 0, exp_time);
-        let res = eos.push_transaction(key,&ti)?;
+        let res = eos.push_transaction(key, action, gi.head_block_num, 0, exp_time)?;
         eprintln!("{:#?}", "hi");
 
 

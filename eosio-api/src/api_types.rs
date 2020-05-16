@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc, Duration};
 use serde::{Serialize, Deserialize};
 
-mod eosio_datetime_format {
+pub(crate) mod eosio_datetime_format {
     use chrono::{DateTime, Utc, TimeZone, NaiveDateTime};
     use serde::{self, Deserialize, Serializer, Deserializer};
 
@@ -245,6 +245,11 @@ pub struct AuthorizationIn {
     pub permission: String,
     pub actor: String,
 }
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetCodeHash {
+    pub account_name: String,
+    pub hash: String,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ActionIn {
@@ -264,7 +269,7 @@ pub struct TransactionIn {
     expiration: DateTime<Utc>,
     delay_sec: usize,
     max_cpu_usage_ms: usize,
-    actions: Vec<ActionIn>,
+    pub actions: Vec<ActionIn>,
     ref_block_prefix: usize,
     context_free_actions: Vec<String>,
 }

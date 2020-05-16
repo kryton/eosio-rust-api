@@ -15,6 +15,7 @@ mod api_types;
 mod json_rpc;
 mod wasm;
 mod abi;
+mod wallet_types;
 mod errors;
 
 

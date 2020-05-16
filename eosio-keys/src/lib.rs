@@ -110,8 +110,8 @@ impl EOSPrivateKey {
     }
 
 
-    pub  fn sign_hash_canonical(&self,  hash: &Vec<u8>) -> Result<EOSSignature> {
-        let mut nonce = 0;
+    pub  fn sign_hash_canonical(&self,  _hash: &Vec<u8>) -> Result<EOSSignature> {
+        let mut _nonce = 0;
         Err("Not Implemented".into())
     }
     pub unsafe fn sign_hash_canonical_broken(&self,  hash: &mut Vec<u8>) -> Result<EOSSignature> {
@@ -120,7 +120,7 @@ impl EOSPrivateKey {
          let mut counter: i32 = 0;
         let mut compressed_sig :[u8;65] = [0;65];
         compressed_sig[0]=0;
-        let mut i =0;
+        //let mut i =0;
 
         let ctx = secp.ctx();
         let mut recid:[i32;1] =[0];

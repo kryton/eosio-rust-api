@@ -487,33 +487,24 @@ mod pubkey_tests {
     use super::*;
 
     #[test]
-    fn publickey_from_string_test() {
+    fn publickey_from_string_test() ->Result<()> {
         let pubkey_k1 = "PUB_K1_859gxfnXyUriMgUeThh1fWv3oqcpLFyHa3TfFYC4PK2Ht7beeX";
         let pubkey_k1_inv = "PUB_K1_859gxfnXyUriMgUeThh1fWv3oqcpLFyHa3TfFYC4PK2Ht7befX";
         let pubkey_r1 = "PUB_R1_6FPFZqw5ahYrR9jD96yDbbDNTdKtNqRbze6oTDLntrsANgQKZu";
         let pubkey_eos = "EOS67SCWnz6trqFPCtmxfjYEPSsT9JKRn4zhow8X3VTtgaEzNMULF";
-        match EOSPublicKey::from_eos_string(pubkey_k1) {
-            Ok(jk) => {}
-            Err(e) => assert!(false),
-        }
-        match EOSPublicKey::from_eos_string(pubkey_r1) {
-            Ok(jk) => {}
-            Err(e) => assert!(false),
-        }
+        EOSPublicKey::from_eos_string(pubkey_k1)?;
+
+        EOSPublicKey::from_eos_string(pubkey_r1)?;
 
         match EOSPublicKey::from_eos_string(pubkey_k1_inv) {
             Ok(jk) => assert!(false),
-            Err(e) => {}
+            Err(_e) => {}
         }
 
-        match EOSPublicKey::from_string_legacy(pubkey_eos, "EOS") {
-            Ok(jk) => {}
-            Err(e) => assert!(false),
-        }
-        match EOSPublicKey::from_eos_string(pubkey_eos) {
-            Ok(jk) => {}
-            Err(e) => assert!(false),
-        }
+        EOSPublicKey::from_string_legacy(pubkey_eos, "EOS")?;
+
+        EOSPublicKey::from_eos_string(pubkey_eos)?;
+        Ok(())
     }
     /*
     fn back_forth(k:&str) -> String {

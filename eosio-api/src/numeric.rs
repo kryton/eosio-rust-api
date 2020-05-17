@@ -62,7 +62,7 @@ pub fn negate(bignum: &Vec<u8>) -> Vec<u8> {
  * Convert an unsigned decimal number in `s` to a bignum
  * @param size bignum size (bytes)
  */
-
+#[allow(dead_code)]
 pub fn decimal_to_binary(size: usize, s: &str) -> Vec<u8> {
     let mut result: Vec<u8> = vec![0; size];
 
@@ -90,6 +90,7 @@ pub fn decimal_to_binary(size: usize, s: &str) -> Vec<u8> {
  * Convert a signed decimal number in `s` to a bignum
  * @param size bignum size (bytes)
  */
+#[allow(dead_code)]
 pub fn signed_decimal_to_binary(size: usize, s: &str) -> Vec<u8> {
     if s.len() <= 0 {
         return decimal_to_binary(size, "0");
@@ -117,6 +118,7 @@ pub fn signed_decimal_to_binary(size: usize, s: &str) -> Vec<u8> {
  * Convert `bignum` to an unsigned decimal number
  * @param minDigits 0-pad result to this many digits
  */
+#[allow(dead_code)]
 pub fn binary_to_decimal(bignum: &Vec<u8>, min_digits: usize) -> String {
     let mut result: Vec<char> = std::iter::repeat('0').take(min_digits).collect();
 
@@ -142,6 +144,7 @@ pub fn binary_to_decimal(bignum: &Vec<u8>, min_digits: usize) -> String {
  * Convert `bignum` to a signed decimal number
  * @param minDigits 0-pad result to this many digits
  */
+#[allow(dead_code)]
 pub fn signed_binary_to_decimal(bignum: &Vec<u8>, min_digits: usize) -> String {
     return if is_negative(bignum) {
         "-".to_owned() + binary_to_decimal(&negate(bignum), min_digits).as_str()
@@ -154,14 +157,14 @@ pub fn signed_binary_to_decimal(bignum: &Vec<u8>, min_digits: usize) -> String {
  * Convert an unsigned base-58 number in `s` to a bignum
  * @param size bignum size (bytes)
  */
-
+#[allow(dead_code)]
 pub fn base58_to_binary(_size: usize, s: &str) -> Vec<u8> {
     match bs58::decode(s).into_vec() {
         Ok(vec) => return vec,
         Err(err) => panic!("{}", err),
     }
 }
-
+#[allow(dead_code)]
 pub fn binary_to_base58(bignum: Vec<u8>, _min_digits: usize) -> String {
     bs58::encode(bignum).into_string()
 }
@@ -169,17 +172,18 @@ pub fn binary_to_base58(bignum: Vec<u8>, _min_digits: usize) -> String {
 /**
  * Convert an unsigned base-64 number in `s` to a bignum
  */
+#[allow(dead_code)]
 pub fn base64_to_binary(s: &str) -> Vec<u8> {
     match base64::decode(s) {
         Ok(vec) => return vec,
         Err(err) => panic!("{}", err),
     }
 }
-
+#[allow(dead_code)]
 pub fn binary_to_base64(bignum: &Vec<u8>) -> String {
     base64::encode(bignum)
 }
-
+#[allow(dead_code)]
 pub fn digest_suffix_ripemd160(data: &Vec<u8>, suffix: &str) -> Vec<u8> {
     let mut hasher = Ripemd160::new();
     //hasher.input(data);
@@ -188,13 +192,13 @@ pub fn digest_suffix_ripemd160(data: &Vec<u8>, suffix: &str) -> Vec<u8> {
     hasher.input(combined);
     hasher.result().to_vec()
 }
-
+#[allow(dead_code)]
 fn ripemd160(data: &Vec<u8>) -> Vec<u8> {
     let mut hasher = Ripemd160::new();
     hasher.input(data);
     hasher.result().to_vec()
 }
-
+#[allow(dead_code)]
 fn is_invalid_digest(block1: Vec<u8>, block2: Vec<u8>, offset: usize) -> bool {
     return block1[0] != block2[offset + 0]
         || block1[1] != block2[offset + 1]

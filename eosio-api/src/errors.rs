@@ -47,5 +47,9 @@ error_chain!{
                 description("ABI Names should be max 13 characters long")
                 display("ABI Names should be max 13 characters long")
             }
+            WalletMissingChainID {
+                description("Wallet needs a Chain ID to sign transactions")
+                display("Missing chain ID in wallet")
+            }
         }
     }

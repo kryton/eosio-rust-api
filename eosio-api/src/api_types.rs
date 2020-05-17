@@ -216,7 +216,7 @@ pub struct GetAbi {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RequiredKeys {
-    required_keys: Vec<String>,
+    pub required_keys: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -264,7 +264,6 @@ pub struct TransactionIn {
     transaction_extensions: Vec<String>,
     ref_block_num: usize,
     max_net_usage_words: usize,
-
     #[serde(with = "eosio_datetime_format")]
     expiration: DateTime<Utc>,
     delay_sec: usize,
@@ -272,6 +271,7 @@ pub struct TransactionIn {
     pub actions: Vec<ActionIn>,
     ref_block_prefix: usize,
     context_free_actions: Vec<String>,
+    pub signatures: Vec<String>, // KleosD 2.1 returns signatures here
 }
 
 impl TransactionIn {
@@ -286,6 +286,7 @@ impl TransactionIn {
             actions: vec![],
             ref_block_prefix: 0,
             context_free_actions: vec![],
+            signatures: vec![],
         }
     }
     pub fn simple(action: ActionIn, ref_block_num: usize, ref_block_prefix: usize, expiration: DateTime<Utc>) -> TransactionIn {
@@ -299,6 +300,7 @@ impl TransactionIn {
             actions: vec![action],
             ref_block_prefix,
             context_free_actions: vec![],
+            signatures: vec![]
         }
     }
 }

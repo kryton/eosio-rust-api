@@ -15,10 +15,10 @@ use crate::errors::{ErrorKind, Result};
 lazy_static! {
     pub static ref ENTROPY_COUNT: Mutex<usize> = Mutex::new(0);
     static ref ENTROPY_POS: Mutex<usize> = Mutex::new(0);
-}
-lazy_static! {
     static ref EXTERNAL_ENTROPY_ARRAY: Mutex<Vec<u8>> = Mutex::new(random_bytes(101));
 }
+
+#[allow(dead_code)]
 pub fn random32_byte_buffer(cpu_entropy_bits: usize, safe: bool) -> Vec<u8> {
     match EXTERNAL_ENTROPY_ARRAY.lock() {
         Ok(ext_entropy_array) => {
@@ -55,11 +55,11 @@ pub fn random32_byte_buffer(cpu_entropy_bits: usize, safe: bool) -> Vec<u8> {
         Err(_) => panic!("Random 32byte buffer fail"),
     }
 }
-
+#[allow(dead_code)]
 pub fn random_bytes(num: usize) -> Vec<u8> {
     thread_rng().sample_iter(&Standard).take(num).collect()
 }
-
+#[allow(dead_code)]
 pub fn os_random_bytes(num: usize) -> Vec<u8> {
     OsRng.sample_iter(&Standard).take(num).collect()
 }
@@ -84,6 +84,7 @@ pub fn os_random_bytes(num: usize) -> Vec<u8> {
     }
     </code>
 */
+#[allow(dead_code)]
 pub fn add_entropy(ints: &[u8]) {
     match EXTERNAL_ENTROPY_ARRAY.lock() {
         Ok(mut ext_entropy_array) => {
@@ -123,6 +124,7 @@ pub fn add_entropy(ints: &[u8]) {
     @arg [cpu_entropy_bits = 128]
     @return {array} counts gathered by measuring variations in the CPU speed during floating point operations.
 */
+#[allow(dead_code)]
 pub fn cpu_entropy(cpu_entropy_bits: usize) -> Vec<f64> {
     let mut collected: Vec<f64> = vec![];
     let mut last_count: f64 = -1.0;
@@ -162,6 +164,7 @@ pub fn cpu_entropy(cpu_entropy_bits: usize) -> Vec<f64> {
     (7 ms for example).  Using a fixed time makes this algorithm
     predictable in runtime.
 */
+#[allow(dead_code)]
 fn floating_point_count() -> f64 {
     let work_min_ms = Duration::new(0, 7 * 1000000); // 7ms
     let start = Instant::now();
@@ -182,6 +185,7 @@ fn floating_point_count() -> f64 {
   @arg {string} keyType = sha256x2, K1, etc
   @return {string} checksum encoded base58 string
 */
+
 pub fn check_encode(key_buffer: &[u8], key_type: &str) -> Result<String> {
     match key_type {
         "sha256x2" => {

@@ -335,3 +335,11 @@ pub struct PackedTransactionIn {
     pub packed_context_free_data: String,
     pub packed_trx: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetRawABI {
+    pub account_name: String,
+    pub code_hash: String,
+    pub abi_hash: String,
+    pub abi: String,
+}

@@ -8,8 +8,6 @@ pub struct ABIName {
     pub value:u64
 }
 impl ABIName {
-
-
     pub fn from_str(string: &str) -> Result<ABIName> {
         let mut value: u64 = 0;
         let chars = string.as_bytes();

@@ -3,7 +3,7 @@ use reqwest::StatusCode;
 use serde_json::Value;
 use reqwest::header::{CONTENT_TYPE, HeaderValue};
 use crate::errors::{Result, ErrorKind};
-use crate::api_types::{GetAccount, GetAbi, RequiredKeys, GetInfo, TransactionIn, ActionIn, AuthorizationIn, ErrorReply, PackedTransactionIn, GetCodeHash};
+use crate::api_types::{GetAccount, GetAbi, RequiredKeys, GetInfo, TransactionIn, ActionIn, AuthorizationIn, ErrorReply, PackedTransactionIn, GetCodeHash, GetRawABI};
 use crate::wallet_types::Wallet;
 use eosio_keys::{EOSPublicKey, EOSPrivateKey, EOSSignature};
 use crate::wasm::WASM;
@@ -75,10 +75,15 @@ impl EOSRPC {
         let gc: GetCodeHash = serde_json::from_str(&res)?;
         Ok(gc)
     }
+    pub fn get_raw_abi(&self, account_name: &str) -> Result<GetRawABI> {
+        let value = serde_json::json!({ "account_name": account_name });
+
+        let res = self.blocking_req("/v1/chain/get_raw_abi", value)?;
+        let gr: GetRawABI = serde_json::from_str(&res)?;
+        Ok(gr)
+    }
 
     pub fn get_required_keys(&self, transaction: &TransactionIn, keys: Vec<EOSPublicKey>) -> Result<RequiredKeys> {
-        //  let now = Instant::now();
-
         let mut key_str: Vec<String> = vec![];
         for key in keys {
             let x = key.to_eos_string()?;
@@ -86,12 +91,9 @@ impl EOSRPC {
         }
 
         let value = serde_json::json!({ "transaction": transaction, "available_keys":key_str});
-        // eprintln!("Req-Keys-start {:?}", now.elapsed());
         let res = self.blocking_req("/v1/chain/get_required_keys", value)?;
-        //  eprintln!("Req-Keys-back {:?}", now.elapsed());
-        let ga: RequiredKeys = serde_json::from_str(&res).unwrap();
-        // eprintln!("Req-Keys-done {:?}", now.elapsed());
-        Ok(ga)
+        let rk: RequiredKeys = serde_json::from_str(&res).unwrap();
+        Ok(rk)
     }
 
 
@@ -123,6 +125,7 @@ impl EOSRPC {
             }
         }
     }
+
     fn push_transaction_int(&self, private_key: EOSPrivateKey, action: ActionIn, ref_block_num: usize, ref_block_prefix: usize, exp_time: DateTime<Utc>) -> Result<()> {
        eprintln!("push_transaction_int does not work. use push_transaction");
         let now = Instant::now();
@@ -315,6 +318,49 @@ mod test {
         let name = ABIName::from_str("fwonhjnefmps").unwrap();
         let action = create_setcode_action(name, wasm)?;
         let _res = eos.push_transaction_int(key, action, gi.head_block_num, 0, exp_time)?;
+
+        Ok(())
+    }
+    #[test]
+    fn blocking_get_raw_abi() -> Result<()> {
+        let eos = EOSRPC::blocking(String::from(TEST_HOST));
+        let _res = eos.get_raw_abi("eosio")?;
+
+        Ok(())
+    }
+    #[test]
+    fn blocking_packed() -> Result<()> {
+        let packed_action = "000000008090b1ca000000000091b1ca000075982aea3055";
+        let raw_action = "'{\"account\":\"test1\", \"code\":\"test2\", \"type\":\"eosioeosio\"}'";
+        let raw_txn = "{
+  \"expiration\": \"2018-08-02T20:24:36\",
+  \"ref_block_num\": 14207,
+  \"ref_block_prefix\": 1438248607,
+  \"max_net_usage_words\": 0,
+  \"max_cpu_usage_ms\": 0,
+  \"delay_sec\": 0,
+  \"context_free_actions\": [],
+  \"actions\": [{
+      \"account\": \"eosio\",
+      \"name\": \"newaccount\",
+      \"authorization\": [{
+          \"actor\": \"eosio\",
+          \"permission\": \"active\"
+        }
+      ],
+      \"data\": \"0000000000ea305500a6823403ea30550100000001000240cc0bf90a5656c8bb81f0eb86f49f89613c5cd988c018715d4646c6bd0ad3d8010000000100000001000240cc0bf90a5656c8bb81f0eb86f49f89613c5cd988c018715d4646c6bd0ad3d801000000\"
+    }
+  ],
+  \"transaction_extensions\": []
+}";
+        let packed_trx = "8468635b7f379feeb95500000000010000000000ea305500409e9a2264b89a010000000000ea305500000000a8ed3232660000000000ea305500a6823403ea30550100000001000240cc0bf90a5656c8bb81f0eb86f49f89613c5cd988c018715d4646c6bd0ad3d8010000000100000001000240cc0bf90a5656c8bb81f0eb86f49f89613c5cd988c018715d4646c6bd0ad3d80100000000";
+        let packed_trx_json = "
+        {
+            \"signatures\": [],
+            \"compression\": \"none\",
+            \"packed_context_free_data\": \"\",
+            \"packed_trx\": \"8468635b7f379feeb95500000000010000000000ea305500409e9a2264b89a010000000000ea305500000000a8ed3232660000000000ea305500a6823403ea30550100000001000240cc0bf90a5656c8bb81f0eb86f49f89613c5cd988c018715d4646c6bd0ad3d8010000000100000001000240cc0bf90a5656c8bb81f0eb86f49f89613c5cd988c018715d4646c6bd0ad3d80100000000\"
+        }";
 
         Ok(())
     }

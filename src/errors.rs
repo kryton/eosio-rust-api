@@ -22,6 +22,13 @@ impl PartialEq for Error {
 
 error_chain! {
     foreign_links {
-     std::io( std::io::Error)
+         StdIO(std::io::Error);
+         EosioApi(eosio_api::errors::Error);
     }
+     errors {
+        MissingArg {
+          description("missing argument")
+                display("missing argument")
+        }
+     }
 }

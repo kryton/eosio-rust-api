@@ -24,10 +24,16 @@ pub struct ABIEOS {
 }
 
 impl ABIEOS {
+    ///
+    /// # Safety
+    /// make sure you destroy this after use
     pub unsafe fn new() -> ABIEOS {
         let context: *mut abieos_context = abieos_create();
         ABIEOS { context }
     }
+
+    /// # Safety
+    /// make sure you destroy this after use
     pub unsafe fn new_with_abi(contract_name: &str, abi: &str) -> Result<ABIEOS> {
         let context: *mut abieos_context = abieos_create();
         let abi_obj = ABIEOS { context };
@@ -39,10 +45,15 @@ impl ABIEOS {
             Ok(abi_obj)
         }
     }
+    /// # Safety
+    /// after destroy, don't use any other function
     pub unsafe fn destroy(&self) {
         abieos_destroy(self.context);
         //  self.context = null();
     }
+
+    /// # Safety
+    /// make sure you destroy this after use
     pub unsafe fn set_abi(&self, contract_name: &str, abi: &str) -> Result<bool> {
         let name = self.str_to_name(contract_name)?;
         let abi_cs = CString::new(abi)?;
@@ -52,10 +63,16 @@ impl ABIEOS {
         }
         Ok(true)
     }
+
+    /// # Safety
+    /// make sure you destroy this after use
     pub unsafe fn str_to_name(&self, str_name: &str) -> Result<ABIName> {
         let cs = CString::new(str_name)?;
         Ok(abieos_string_to_name(self.context, cs.as_ptr() as *const i8))
     }
+
+    /// # Safety
+    /// make sure you destroy this after use
     pub unsafe fn hex_to_json(&self, contract_name: &str, type_str: &str, hex: &str) -> Result<String> {
         let name = self.str_to_name(contract_name)?;
         let typeCS = CString::new(type_str).unwrap();
@@ -69,6 +86,9 @@ impl ABIEOS {
             Ok(json)
         }
     }
+
+    /// # Safety
+    /// make sure you destroy this after use
     pub unsafe fn json_to_hex(&self, contract_name: &str, type_str: &str, json: &str) -> Result<&str> {
         let name = self.str_to_name(contract_name)?;
         let typeCS = CString::new(type_str).unwrap();
@@ -87,6 +107,8 @@ impl ABIEOS {
         }
     }
 
+    /// # Safety
+    /// make sure you destroy this after use
     unsafe fn abieos_error(&self) -> Result<String> {
         let err_raw: *const c_char = abieos_get_error(self.context);
         if err_raw != null() {

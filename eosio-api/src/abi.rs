@@ -35,7 +35,7 @@ impl ABIName {
 
         let mut result: Vec<u8> = Vec::with_capacity(13);
         for _x in 0..=12 {
-            result.push('.' as u8);
+            result.push(b'.' );
         }
 
         let mut tmp: u64 = self.value;
@@ -54,7 +54,7 @@ impl ABIName {
             i += 1;
         }
         i = 12;
-        while i > 0 && result[i] == '.' as u8 {
+        while i > 0 && result[i] == b'.' {
             result.pop();
             i -= 1;
         }
@@ -64,15 +64,15 @@ impl ABIName {
 }
 
 fn char_to_symbol(c: u8) -> u64 {
-    if c >= 'a' as u8 && c <= 'z' as u8 {
-        let v: u8 = (c - 'a' as u8) + 6;
+    if c >= b'a' && c <= b'z' {
+        let v: u8 = (c - b'a' ) + 6;
         return v as u64;
     }
-    if c >= '1' as u8 && c <= '5' as u8 {
-        let v = (c - '1' as u8) + 1;
+    if c >= b'1'  && c <= b'5'  {
+        let v = (c - b'1') + 1;
         return v as u64;
     }
-    return 0;
+    0
 }
 
 #[cfg(test)]

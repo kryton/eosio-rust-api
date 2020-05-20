@@ -50,7 +50,7 @@ pub fn random32_byte_buffer(cpu_entropy_bits: usize, safe: bool) -> Vec<u8> {
                 .iter()
                 .for_each(|v| v.iter().for_each(|u| flattened.push(*u)));
             let f: &[u8] = flattened.as_slice();
-            return hash_sha256(f);
+            hash_sha256(f)
         }
         Err(_) => panic!("Random 32byte buffer fail"),
     }
@@ -131,7 +131,7 @@ pub fn cpu_entropy(cpu_entropy_bits: usize) -> Vec<f64> {
     let mut low_entropy_samples: u32 = 0;
     while collected.len() < cpu_entropy_bits {
         let count = floating_point_count();
-        if last_count != -1.0 {
+        if (last_count - -1.0).abs() > std::f64::EPSILON {
             let delta = count - last_count;
             if delta.abs() < 1.0 {
                 low_entropy_samples += 1;
@@ -155,7 +155,7 @@ pub fn cpu_entropy(cpu_entropy_bits: usize) -> Vec<f64> {
         // Is this algorithm getting inefficient?
         eprintln!("WARN: {:.3}% low CPU entropy re-sampled", pct);
     }
-    return collected;
+    collected
 }
 
 /**
@@ -166,7 +166,7 @@ pub fn cpu_entropy(cpu_entropy_bits: usize) -> Vec<f64> {
 */
 #[allow(dead_code)]
 fn floating_point_count() -> f64 {
-    let work_min_ms = Duration::new(0, 7 * 1000000); // 7ms
+    let work_min_ms = Duration::new(0, 7 * 1_000_000); // 7ms
     let start = Instant::now();
     let mut i: f64 = 0.0;
     let mut x: f64 = 0.0;
@@ -177,7 +177,7 @@ fn floating_point_count() -> f64 {
         x = (x + i).log(10.0).sqrt().sin();
         //    duration = start.elapsed();
     }
-    return i;
+    i
 }
 
 /**
@@ -217,9 +217,9 @@ pub fn check_decode(key_string: &[u8], key_type: &str) -> Result<Vec<u8>> { // ,
     let buf: Vec<u8> = bs58::decode(key_string).into_vec().unwrap();
     let buffer_len = buf.len();
     if buffer_len <= 4 {
-        return Err(ErrorKind::DecodeError(String::from("Key is too short")).into());
+         Err(ErrorKind::DecodeError(String::from("Key is too short")).into())
     } else {
-        let post_len: usize = buffer_len.checked_sub(4).unwrap_or(0);
+        let post_len: usize = buffer_len.saturating_sub(4);
         let checksum = &buf[post_len..buffer_len];
         let key = &buf[0..post_len];
         let new_check: Vec<u8> = match key_type {

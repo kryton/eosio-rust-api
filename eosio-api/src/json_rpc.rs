@@ -10,7 +10,7 @@ use crate::wasm::WASM;
 use crate::abi::ABIName;
 //use crate::numeric::binary_to_base58;
 
-use chrono::{Utc, NaiveDateTime, DateTime, FixedOffset, Duration};
+use chrono::{Utc, DateTime};
 use std::time::Instant;
 
 
@@ -97,7 +97,7 @@ impl EOSRPC {
     }
 
 
-    pub fn push_transaction(&self, wallet: Wallet, action: ActionIn, ref_block_num: usize, ref_block_prefix: usize, exp_time: DateTime<Utc>) -> Result<(String)> {
+    pub fn push_transaction(&self, wallet: Wallet, action: ActionIn, ref_block_num: usize, ref_block_prefix: usize, exp_time: DateTime<Utc>) -> Result<String> {
         let ti = TransactionIn::simple(action, ref_block_num, ref_block_prefix, exp_time);
         let packed_trx = serde_json::to_string(&ti)?;
         let trx = vec_u8_to_str(&packed_trx.as_bytes().to_vec())?;
@@ -116,8 +116,8 @@ impl EOSRPC {
         match self.blocking_req("/v1/chain/push_transaction", in_val) {
             Err(e) => {
                 eprintln!("{:#?}", e);
-                assert!(false);
-                Err("FAIL".into())
+                panic!("push tran");
+                //Err("FAIL".into())
             }
             Ok(s) => {
                 eprintln!("{}", s);
@@ -126,6 +126,7 @@ impl EOSRPC {
         }
     }
 
+    #[allow(dead_code)]
     fn push_transaction_int(&self, private_key: EOSPrivateKey, action: ActionIn, ref_block_num: usize, ref_block_prefix: usize, exp_time: DateTime<Utc>) -> Result<()> {
        eprintln!("push_transaction_int does not work. use push_transaction");
         let now = Instant::now();
@@ -151,7 +152,7 @@ impl EOSRPC {
             Err(e) => {
                 eprintln!("PT-6 {:?}", now.elapsed());
                 eprintln!("{:#?}", e);
-                assert!(false)
+                panic!("Error Push Tran")
             }
             Ok(s) => {
                 eprintln!("{}", s)
@@ -171,13 +172,13 @@ struct ActionSetcodeData {
 
 fn byte_to_char(x: u8) -> char {
     (if x <= 9 {
-        x + '0' as u8
+        x + b'0'
     } else {
-        x - 10 + 'a' as u8
+        x - 10 + b'a'
     }) as char
 }
 
-pub fn vec_u8_to_str(out: &Vec<u8>) -> Result<String> {
+pub fn vec_u8_to_str(out: &[u8]) -> Result<String> {
     let mut str = String::with_capacity(out.len());
     for x in out {
         str.push(byte_to_char((x & 0xf0).checked_shr(4).unwrap_or(0)));
@@ -188,7 +189,7 @@ pub fn vec_u8_to_str(out: &Vec<u8>) -> Result<String> {
 
 impl ActionSetcodeData {
     fn to_str(&self) -> Result<String> {
-        let code_len = self.wasm.code.len();
+       // let code_len = self.wasm.code.len();
         let buf = self.name.value.to_ne_bytes().to_vec();
 // let out:Vec<u8> = Vec::<u8>::with_capacity(code_len+buf.len()+2);
         let vm: Vec<u8> = [self.vmtype, self.vmversion].to_vec();
@@ -217,10 +218,11 @@ mod test {
 
     //use crate::api_types::GetAccount;
     use crate::wallet_types::{get_wallet_pass, EOSIO_CHAIN_ID};
+    use chrono::{NaiveDateTime, Duration};
 
     //const TEST_HOST: &str = "http://127.0.0.1:8888";
     const TEST_HOST: &str = "https://api.testnet.eos.io";
-    const TEST_KEOSD: &str = "http://127.0.0.1:3999";
+    const TEST_KEOSD: &str = "http://127.0.0.1:3888";
 
     const TEST_WALLET_NAME: &str = "default";
 //const TEST_HOST: &str = "https://eos.greymass.com";
@@ -229,30 +231,30 @@ mod test {
     #[test]
     fn blocking_req_test() -> Result<()> {
         let eos = EOSRPC::blocking(String::from(TEST_HOST));
-        let ga = eos.get_account("eosio").unwrap();
+        let _ga = eos.get_account("eosio")?;
 
-        let abi = eos.get_abi("eosio")?;
+        let _abi = eos.get_abi("eosio")?;
         Ok(())
     }
 
     #[test]
-    fn blocking_get_info() {
-        let client = reqwest::blocking::Client::new();
+    fn blocking_get_info() -> Result<()>{
         let eos = EOSRPC::blocking(String::from(TEST_HOST));
-        let gi = eos.get_info().unwrap();
+        let _gi = eos.get_info()?;
+        Ok(())
     }
 
     #[test]
     fn datetime_format() {
         let s = "2020-05-16T05:12:03";
         const FORMAT: &'static str = "%Y-%m-%dT%H:%M:%S";
-        let tz_offset = FixedOffset::east(0);
+       // let _tz_offset = FixedOffset::east(0);
         match NaiveDateTime::parse_from_str(s, FORMAT) {
             Err(_e) => {
                 eprintln!("{:#?}", _e);
                 assert!(false)
             }
-            Ok(dt) => {
+            Ok(_dt) => {
                 assert!(true)
             }
         }
@@ -260,7 +262,7 @@ mod test {
 
     #[test]
     fn blocking_get_required_keys() -> Result<()> {
-        let client = reqwest::blocking::Client::new();
+      //  let client = reqwest::blocking::Client::new();
         let eos = EOSRPC::blocking(String::from(TEST_HOST));
         let keys = vec![
             EOSPublicKey::from_eos_string("EOS6zUgp7uAV1pCTXZMGJyH3dLUSWJUkZWGA9WpWxyP2pCT3mAkNX").unwrap(),
@@ -294,7 +296,7 @@ mod test {
         let gi: GetInfo = eos.get_info()?;
         let exp_time = gi.head_block_time + Duration::days(1);
 
-        let key = EOSPrivateKey::from_string("PVT_K1_2jH3nnhxhR3zPUcsKaWWZC9ZmZAnKm3GAnFD1xynGJE1Znuvjd")?;
+        let _key = EOSPrivateKey::from_string("PVT_K1_2jH3nnhxhR3zPUcsKaWWZC9ZmZAnKm3GAnFD1xynGJE1Znuvjd")?;
         let wasm = WASM::read_file("test/good.wasm")?;
 
         let name = ABIName::from_str("fwonhjnefmps").unwrap();
@@ -330,9 +332,9 @@ mod test {
     }
     #[test]
     fn blocking_packed() -> Result<()> {
-        let packed_action = "000000008090b1ca000000000091b1ca000075982aea3055";
-        let raw_action = "'{\"account\":\"test1\", \"code\":\"test2\", \"type\":\"eosioeosio\"}'";
-        let raw_txn = "{
+        let _packed_action = "000000008090b1ca000000000091b1ca000075982aea3055";
+        let _raw_action = "'{\"account\":\"test1\", \"code\":\"test2\", \"type\":\"eosioeosio\"}'";
+        let _raw_txn = "{
   \"expiration\": \"2018-08-02T20:24:36\",
   \"ref_block_num\": 14207,
   \"ref_block_prefix\": 1438248607,
@@ -353,8 +355,8 @@ mod test {
   ],
   \"transaction_extensions\": []
 }";
-        let packed_trx = "8468635b7f379feeb95500000000010000000000ea305500409e9a2264b89a010000000000ea305500000000a8ed3232660000000000ea305500a6823403ea30550100000001000240cc0bf90a5656c8bb81f0eb86f49f89613c5cd988c018715d4646c6bd0ad3d8010000000100000001000240cc0bf90a5656c8bb81f0eb86f49f89613c5cd988c018715d4646c6bd0ad3d80100000000";
-        let packed_trx_json = "
+        let _packed_trx = "8468635b7f379feeb95500000000010000000000ea305500409e9a2264b89a010000000000ea305500000000a8ed3232660000000000ea305500a6823403ea30550100000001000240cc0bf90a5656c8bb81f0eb86f49f89613c5cd988c018715d4646c6bd0ad3d8010000000100000001000240cc0bf90a5656c8bb81f0eb86f49f89613c5cd988c018715d4646c6bd0ad3d80100000000";
+        let _packed_trx_json = "
         {
             \"signatures\": [],
             \"compression\": \"none\",

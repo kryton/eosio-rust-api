@@ -17,10 +17,11 @@ mod key_utils;
 pub mod errors;
 
 use crate::errors::{Result, ErrorKind};
-use secp256k1::secp256k1_sys::{secp256k1_nonce_function_default, secp256k1_context_preallocated_clone, secp256k1_ecdsa_sign, secp256k1_nonce_function_rfc6979, secp256k1_ecdh_hash_function_default};
+#[allow(unused_imports)]
+use secp256k1::secp256k1_sys::{secp256k1_nonce_function_default, secp256k1_ecdsa_sign, secp256k1_nonce_function_rfc6979, secp256k1_ecdh_hash_function_default};
 //use std::os::raw::c_void;
 use secp256k1::secp256k1_sys::types::c_void;
-use std::os::raw::c_short;
+//use std::os::raw::c_short;
 lazy_static! {
     static ref SIG_MATCH: Regex =Regex::new("^SIG_(?P<type>[A-Za-z0-9]+)_(?P<key>[A-Za-z0-9]+)$").unwrap();
     static ref PRIVKEY_MATCH: Regex =Regex::new("^PVT_(?P<type>[A-Za-z0-9]+)_(?P<key>[A-Za-z0-9]+)$").unwrap();
@@ -82,12 +83,10 @@ impl EOSPrivateKey {
     pub fn from_buffer(buffer: &[u8]) -> Result<SecretKey> {
         if buffer.len() == 33 && buffer[32] == 1 {
             EOSPrivateKey::from_buffer(&buffer[0..32])
+        } else if buffer.len() == 32 {
+            Ok(SecretKey::from_slice(buffer)?)
         } else {
-            if buffer.len() == 32 {
-                Ok(SecretKey::from_slice(buffer)?)
-            } else {
-                Err(ErrorKind::InvalidPrivateKeyFormat.into())
-            }
+            Err(ErrorKind::InvalidPrivateKeyFormat.into())
         }
     }
     pub fn to_public(&self) -> EOSPublicKey {
@@ -109,8 +108,8 @@ impl EOSPrivateKey {
         self.sign_hash(&hash)
     }
 
-
-    unsafe fn sign_hash_canonical(&self, hash: & Vec<u8>) -> Result<EOSSignature> {
+#[allow(dead_code)]
+    unsafe fn sign_hash_canonical(&self, hash: &[u8]) -> Result<EOSSignature> {
         let secp = Secp256k1::signing_only();
         // let message = Message::from_slice(hash)?;
         let mut counter: i32 = 0;
@@ -118,7 +117,9 @@ impl EOSPrivateKey {
         compressed_sig[0] = 0;
         //let mut i =0;
 
+
         let ctx = secp.ctx();
+        #[allow(unused_mut)]
         let mut recid: [i32; 1] = [0];
         let mut eossig = EOSSignature::from(&compressed_sig)?;
         //    eprintln!("BEFO:{}", eossig.to_eos_string()?);
@@ -173,7 +174,8 @@ impl EOSPrivateKey {
 }
 #[allow(dead_code)]
 unsafe extern "C" fn extended_nonce_function(nonce32: *mut u8, msg32: *const u8, key32: *const u8, algo: *const u8, data: *mut c_void, attempt: u32) {
-    let extra: *mut c_short = data as *mut c_short;
+  //  #[allow(clippy::cast_ptr_alignment)]
+    let extra: *mut u8 = data as *mut u8;
     *extra += 1;
 
     secp256k1_nonce_function_rfc6979(nonce32, msg32, key32, algo, extra as *mut c_void, attempt);
@@ -200,7 +202,7 @@ impl EOSSignature {
         match buffer.len() {
             EOS_SIGNATURE_LENGTH => {
                 let i = buffer[0];
-                if i.checked_sub(27).unwrap_or(0) == i.checked_sub( 27).unwrap_or(0) & 7 {
+                if i.saturating_sub(27) == i.saturating_sub( 27) & 7 {
                     let sig = Signature::from_compact(&buffer[1..65])?;
                     Ok(EOSSignature { sig, canonical: EOSSignature::is_canonical_check(buffer), byte_zero:buffer[0] })
                 } else {
@@ -310,7 +312,7 @@ impl EOSPublicKey {
         EOSPublicKey::from_string_legacy(public_key, "EOS")
     }
 
-    pub fn from_eos_strings(public_keys: &Vec<String>) -> Result<Vec<EOSPublicKey>> {
+    pub fn from_eos_strings(public_keys: &[String]) -> Result<Vec<EOSPublicKey>> {
         let results: Vec<Result<EOSPublicKey>> = public_keys.iter().map(|s| {
             EOSPublicKey::from_eos_string(s)
         }).collect();
@@ -346,7 +348,7 @@ impl EOSPublicKey {
             EOSPublicKey::from_buffer(valid_key)
         } else {
             // legacy
-            if pubkey_prefix.len() > 0 && public_key.starts_with(pubkey_prefix) {
+            if !pubkey_prefix.is_empty()  && public_key.starts_with(pubkey_prefix) {
                 let prefix_len = pubkey_prefix.len();
                 let pubkey = &public_key[prefix_len..public_key.len()];
                 let valid_key = check_decode(pubkey.as_bytes(), "")?;
@@ -389,7 +391,7 @@ mod pubkey_tests {
         EOSPublicKey::from_eos_string(pubkey_r1)?;
 
         match EOSPublicKey::from_eos_string(pubkey_k1_inv) {
-            Ok(jk) => assert!(false),
+            Ok(_jk) => assert!(false),
             Err(_e) => {}
         }
 
@@ -492,7 +494,7 @@ mod sig_test {
     #[test]
     fn sig_fromstr() -> Result<()> {
         let sig_str = "SIG_K1_KmQRYtEYYqAKMyi1RjQ3YasVuBpqpjyUM4eyQGrKvushRkVN7GdyfkJLZPqoskXPqj58BAVQdJN4CJeW5APBVjZZAQ5R6h";
-        let sig = super::EOSSignature::from_string(sig_str)?;
+        let _sig = super::EOSSignature::from_string(sig_str)?;
 
         let _sig2 = "SIG_K1_xcuCzcbQBjUFxm5FbUi1iBLot5UjuwaaP6bwNhNF8TofjrdakpjqstPeWnQ8iNUxEC68tiZp5qDxHYHFiVpajVLuPofmYPTMpuDyFSyxEr2P6VULHrnNNidYLu3TcG8gQFqdPyhWzhotcX4VDmWTRxy1KrMjqbyxzsr3PaXDJ8tHJrsahAbQciQHbYMQoV32gc7pYbA";
         let sig2_r = super::EOSSignature::from_string(_sig2);
@@ -508,7 +510,7 @@ mod sig_test {
         let pubkey = "EOS7ctUUZhtCGHnxUnh4Rg5eethj3qNS5S9fijyLMKgRsBLh8eMBB";
         let sig2 = super::EOSSignature::from_string(sig_str2)?;
         let public = EOSPublicKey::from_eos_string(pubkey)?;
-        let verify = sig2.verify(msg.as_bytes(), &public)?;
+        let _verify = sig2.verify(msg.as_bytes(), &public)?;
 
         Ok(())
     }
@@ -544,7 +546,7 @@ mod sig_test {
         let phrase: Vec<u8> = "Greg! The Stop sign".as_bytes().to_vec();
         let hash = hash_sha256(&phrase);
 
-        let sig_str = "SIG_K1_K63SvSQTHGk7GhAfg6gtZsceSnA67bKndpHRDwW7T7v8BJXY2UnVpEK7X2GvX9NMYhM5ttS4PbFNQCxsPnN7FvKPreX8Lr";
+       // let sig_str = "SIG_K1_K63SvSQTHGk7GhAfg6gtZsceSnA67bKndpHRDwW7T7v8BJXY2UnVpEK7X2GvX9NMYhM5ttS4PbFNQCxsPnN7FvKPreX8Lr";
 
         let private = EOSPrivateKey::from_string(priv_str)?;
         let public = private.to_public();

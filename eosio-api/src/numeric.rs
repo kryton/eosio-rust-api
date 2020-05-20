@@ -25,7 +25,7 @@ pub fn create_base58_map() -> [i32; 256] {
         base58_mapi[c as usize] = i;
         i += 1;
     });
-    return base58_mapi;
+    base58_mapi
 }
 
 pub fn create_base64_map() -> [i32; 256] {
@@ -37,25 +37,25 @@ pub fn create_base64_map() -> [i32; 256] {
     });
     base64_mapi['=' as usize] = 0;
 
-    return base64_mapi;
+    base64_mapi
 }
 
 /** Is `bignum` a negative number? */
-pub fn is_negative(bignum: &Vec<u8>) -> bool {
+pub fn is_negative(bignum: &[u8]) -> bool {
     let last_digit = bignum[bignum.len() - 1];
-    return (last_digit & 0x80) != 0;
+    (last_digit & 0x80) != 0
 }
 
 /** Negate `bignum` */
-pub fn negate(bignum: &Vec<u8>) -> Vec<u8> {
+pub fn negate(bignum: &[u8]) -> Vec<u8> {
     let mut carry = 1;
     let mut result: Vec<u8> = Vec::with_capacity(bignum.len());
     for part in bignum {
-        let x = (!part & 0xff) + carry;
+        let x = !part  + carry;
         result.push(x);
         carry = x.checked_shr(8).unwrap_or(0);
     }
-    return result;
+    result
 }
 
 /**
@@ -74,7 +74,8 @@ pub fn decimal_to_binary(size: usize, s: &str) -> Vec<u8> {
 
             for j in 0..size {
                 let x: u16 = (result[j] as u16) * 10 + carry;
-                result[j] = (x & 0xffff) as u8;
+                // result[j] = (x & 0xffff) as u8;
+                result[j] = x as u8;
                 carry = x.checked_shr(8).unwrap_or(0);
             }
             if carry != 0 {
@@ -83,7 +84,7 @@ pub fn decimal_to_binary(size: usize, s: &str) -> Vec<u8> {
         }
     });
 
-    return result;
+    result
 }
 
 /**
@@ -92,7 +93,7 @@ pub fn decimal_to_binary(size: usize, s: &str) -> Vec<u8> {
  */
 #[allow(dead_code)]
 pub fn signed_decimal_to_binary(size: usize, s: &str) -> Vec<u8> {
-    if s.len() <= 0 {
+    if s.is_empty() {
         return decimal_to_binary(size, "0");
     }
 
@@ -100,7 +101,7 @@ pub fn signed_decimal_to_binary(size: usize, s: &str) -> Vec<u8> {
     if is_neg {
         let result = negate(&decimal_to_binary(size, &s[1..]));
         if is_negative(&result) {
-            return result;
+            result
         } else {
             panic!("Invalid number? should be negative");
         }
@@ -109,7 +110,7 @@ pub fn signed_decimal_to_binary(size: usize, s: &str) -> Vec<u8> {
         if is_negative(&result) {
             panic!("number overflow: should be positive");
         } else {
-            return result;
+            result
         }
     }
 }
@@ -119,7 +120,7 @@ pub fn signed_decimal_to_binary(size: usize, s: &str) -> Vec<u8> {
  * @param minDigits 0-pad result to this many digits
  */
 #[allow(dead_code)]
-pub fn binary_to_decimal(bignum: &Vec<u8>, min_digits: usize) -> String {
+pub fn binary_to_decimal(bignum: &[u8], min_digits: usize) -> String {
     let mut result: Vec<char> = std::iter::repeat('0').take(min_digits).collect();
 
     for i in (0..bignum.len()).rev() {
@@ -128,11 +129,11 @@ pub fn binary_to_decimal(bignum: &Vec<u8>, min_digits: usize) -> String {
         for j in 0..result.len() {
             let mut x: u16 = (result[j] as u16 - '0' as u16).checked_shl(8).unwrap_or(0);
             x += carry as u16;
-            result[j] = (('0' as u8) + (x % 10) as u8) as char;
+            result[j] = (b'0' + (x % 10) as u8) as char;
             carry = (x / 10) as u8 | 0;
         }
         while carry > 0 {
-            result.push(('0' as u8 + carry % 10) as char);
+            result.push((b'0' + carry % 10) as char);
             carry = (carry / 10) | 0;
         }
     }
@@ -145,12 +146,12 @@ pub fn binary_to_decimal(bignum: &Vec<u8>, min_digits: usize) -> String {
  * @param minDigits 0-pad result to this many digits
  */
 #[allow(dead_code)]
-pub fn signed_binary_to_decimal(bignum: &Vec<u8>, min_digits: usize) -> String {
-    return if is_negative(bignum) {
+pub fn signed_binary_to_decimal(bignum: &[u8], min_digits: usize) -> String {
+     if is_negative(bignum) {
         "-".to_owned() + binary_to_decimal(&negate(bignum), min_digits).as_str()
     } else {
         binary_to_decimal(&bignum, min_digits)
-    };
+    }
 }
 
 /**
@@ -160,12 +161,13 @@ pub fn signed_binary_to_decimal(bignum: &Vec<u8>, min_digits: usize) -> String {
 #[allow(dead_code)]
 pub fn base58_to_binary(_size: usize, s: &str) -> Vec<u8> {
     match bs58::decode(s).into_vec() {
-        Ok(vec) => return vec,
+        Ok(vec) =>  vec,
         Err(err) => panic!("{}", err),
     }
 }
+
 #[allow(dead_code)]
-pub fn binary_to_base58(bignum: Vec<u8>, _min_digits: usize) -> String {
+pub fn binary_to_base58(bignum: &[u8], _min_digits: usize) -> String {
     bs58::encode(bignum).into_string()
 }
 
@@ -175,16 +177,18 @@ pub fn binary_to_base58(bignum: Vec<u8>, _min_digits: usize) -> String {
 #[allow(dead_code)]
 pub fn base64_to_binary(s: &str) -> Vec<u8> {
     match base64::decode(s) {
-        Ok(vec) => return vec,
+        Ok(vec) =>  vec,
         Err(err) => panic!("{}", err),
     }
 }
+
 #[allow(dead_code)]
-pub fn binary_to_base64(bignum: &Vec<u8>) -> String {
+pub fn binary_to_base64(bignum: &[u8]) -> String {
     base64::encode(bignum)
 }
+
 #[allow(dead_code)]
-pub fn digest_suffix_ripemd160(data: &Vec<u8>, suffix: &str) -> Vec<u8> {
+pub fn digest_suffix_ripemd160(data: &[u8], suffix: &str) -> Vec<u8> {
     let mut hasher = Ripemd160::new();
     //hasher.input(data);
     let vec: Vec<u8> = suffix.chars().map(|c| c as u8).collect();
@@ -192,18 +196,20 @@ pub fn digest_suffix_ripemd160(data: &Vec<u8>, suffix: &str) -> Vec<u8> {
     hasher.input(combined);
     hasher.result().to_vec()
 }
+
 #[allow(dead_code)]
-fn ripemd160(data: &Vec<u8>) -> Vec<u8> {
+fn ripemd160(data: &[u8]) -> Vec<u8> {
     let mut hasher = Ripemd160::new();
     hasher.input(data);
     hasher.result().to_vec()
 }
+
 #[allow(dead_code)]
-fn is_invalid_digest(block1: Vec<u8>, block2: Vec<u8>, offset: usize) -> bool {
-    return block1[0] != block2[offset + 0]
+fn is_invalid_digest(block1: &[u8], block2: &[u8], offset: usize) -> bool {
+    block1[0] != block2[offset]
         || block1[1] != block2[offset + 1]
         || block1[2] != block2[offset + 2]
-        || block1[3] != block2[offset + 3];
+        || block1[3] != block2[offset + 3]
 }
 /*
 /** Key types this library supports */
@@ -378,7 +384,7 @@ pub fn signature_to_string(sig: &Key) -> Result<String, EOSIONumericError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-   // use crate::numeric::KeyType::{K1, R1};
+    // use crate::numeric::KeyType::{K1, R1};
 
     #[test]
     fn base58_mapping() {
@@ -423,20 +429,20 @@ mod tests {
     #[test]
     fn binary_to_base58_test() {
         let bignum: Vec<u8> = vec![7];
-        let str = binary_to_base58(bignum, 1);
+        let str = binary_to_base58(&bignum, 1);
         assert_eq!(str, "8");
 
         // test to make sure we can go back and forth
         let str2 = "5imfbmmHC83VRxLRTcvovviAc6LPpyszcDuKtkwka9e9Jg37Hp";
         let bin2 = base58_to_binary(str2.len(), str2);
-        assert_eq!(binary_to_base58(bin2, 1), str2);
+        assert_eq!(binary_to_base58(&bin2, 1), str2);
 
         let bignum3: Vec<u8> = vec![
             0x03, 0xf0, 0x39, 0xfd, 0xcd, 0xb7, 0x28, 0xef, 0xbb, 0xdd, 0xf4, 0xee, 0x45, 0x24,
             0x19, 0xa9, 0x88, 0x49, 0x7d, 0xeb, 0xb7, 0xbd, 0x1b, 0x42, 0x64, 0x4c, 0x5f, 0xa6,
             0x6e, 0x9a, 0xf8, 0xc8, 0xb6, 0xc6, 0x0a, 0x20, 0xd4,
         ];
-        let str = binary_to_base58(bignum3, 1);
+        let str = binary_to_base58(&bignum3, 1);
         assert_eq!(str, "8f2o2LLQ3phteqyazxirQZnQzQFpnjLnXiUFEJcsSYhnjWNvSX");
     }
 
@@ -539,43 +545,42 @@ mod tests {
     }
 
      */
-/*
-    #[test]
-    fn string_to_publickey_test() {
-        let pubkey_k1 = "PUB_K1_859gxfnXyUriMgUeThh1fWv3oqcpLFyHa3TfFYC4PK2Ht7beeX";
-        let pubkey_r1 = "PUB_R1_6FPFZqw5ahYrR9jD96yDbbDNTdKtNqRbze6oTDLntrsANgQKZu";
-        let pubkey_eos = "EOS67SCWnz6trqFPCtmxfjYEPSsT9JKRn4zhow8X3VTtgaEzNMULF";
-        let pubkey_invalid = "PUB_WW_67SCWnz6trqFPCtmxfjYEPSsT9JKRn4zhow8X3VTtgaEzNMULF";
-        let pubkey_invalid2 = "EKS67SCWnz6trqFPCtmxfjYEPSsT9JKRn4zhow8X3VTtgaEzNMULF";
-        /*
-           "PUB_R1_8S4TodyXa9KASMAJgkLbstFYzAWHNjNJPhpHuqqHF9Af8ekV7i",
-           "PVT_R1_2sPCnkH6652KFYQZNWuQvgfTTHvqjrhV6pQ8tcVQGqBNsopKZp"
-            "EOS67SCWnz6trqFPCtmxfjYEPSsT9JKRn4zhow8X3VTtgaEzNMULF",
-           "5JaKaxySEyjBFGT9K9cYKSFhfojn1RfPcresqRVbmtxnQt1w3qW"
-        */
+    /*
+        #[test]
+        fn string_to_publickey_test() {
+            let pubkey_k1 = "PUB_K1_859gxfnXyUriMgUeThh1fWv3oqcpLFyHa3TfFYC4PK2Ht7beeX";
+            let pubkey_r1 = "PUB_R1_6FPFZqw5ahYrR9jD96yDbbDNTdKtNqRbze6oTDLntrsANgQKZu";
+            let pubkey_eos = "EOS67SCWnz6trqFPCtmxfjYEPSsT9JKRn4zhow8X3VTtgaEzNMULF";
+            let pubkey_invalid = "PUB_WW_67SCWnz6trqFPCtmxfjYEPSsT9JKRn4zhow8X3VTtgaEzNMULF";
+            let pubkey_invalid2 = "EKS67SCWnz6trqFPCtmxfjYEPSsT9JKRn4zhow8X3VTtgaEzNMULF";
+            /*
+               "PUB_R1_8S4TodyXa9KASMAJgkLbstFYzAWHNjNJPhpHuqqHF9Af8ekV7i",
+               "PVT_R1_2sPCnkH6652KFYQZNWuQvgfTTHvqjrhV6pQ8tcVQGqBNsopKZp"
+                "EOS67SCWnz6trqFPCtmxfjYEPSsT9JKRn4zhow8X3VTtgaEzNMULF",
+               "5JaKaxySEyjBFGT9K9cYKSFhfojn1RfPcresqRVbmtxnQt1w3qW"
+            */
 
-        match string_to_publickey(pubkey_k1) {
-            Err(err) => assert!(false),
-            Ok(key) => assert!(key.key_type == KeyType::K1),
+            match string_to_publickey(pubkey_k1) {
+                Err(err) => assert!(false),
+                Ok(key) => assert!(key.key_type == KeyType::K1),
+            }
+            match string_to_publickey(pubkey_r1) {
+                Err(err) => assert!(false),
+                Ok(key) => assert!(key.key_type == KeyType::R1),
+            }
+            match string_to_publickey(pubkey_eos) {
+                Err(err) => assert!(false),
+                Ok(key) => assert!(key.key_type == KeyType::K1),
+            }
+            match string_to_publickey(pubkey_invalid) {
+                Err(err) => assert!(true),
+                Ok(key) => assert!(false),
+            }
+            match string_to_publickey(pubkey_invalid2) {
+                Err(err) => assert!(true),
+                Ok(key) => assert!(false),
+            }
         }
-        match string_to_publickey(pubkey_r1) {
-            Err(err) => assert!(false),
-            Ok(key) => assert!(key.key_type == KeyType::R1),
-        }
-        match string_to_publickey(pubkey_eos) {
-            Err(err) => assert!(false),
-            Ok(key) => assert!(key.key_type == KeyType::K1),
-        }
-        match string_to_publickey(pubkey_invalid) {
-            Err(err) => assert!(true),
-            Ok(key) => assert!(false),
-        }
-        match string_to_publickey(pubkey_invalid2) {
-            Err(err) => assert!(true),
-            Ok(key) => assert!(false),
-        }
-    }
 
- */
-
+     */
 }

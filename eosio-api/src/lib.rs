@@ -4,7 +4,8 @@
 
 extern crate reqwest;
 extern crate serde_json;
-#[macro_use] extern crate error_chain;
+//#[macro_use]
+extern crate error_chain;
 #[macro_use] extern crate lazy_static;
 extern crate base64;
 extern crate bs58;
@@ -12,12 +13,12 @@ extern crate ripemd160;
 extern crate eosio_keys;
 mod numeric;
 mod api_types;
-mod json_rpc;
+pub mod json_rpc;
 mod wasm;
 mod abi;
 //mod serialize;
 mod wallet_types;
-mod errors;
+pub mod errors;
 
 
 pub fn hello() {

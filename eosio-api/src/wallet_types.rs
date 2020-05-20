@@ -9,11 +9,12 @@ use serde::{Serialize, Deserialize};
 use crate::errors::{Result, ErrorKind};
 use crate::json_rpc::{EOSRPC, vec_u8_to_str};
 use serde_json::Value;
-use eosio_keys::{EOSPublicKey, EOSPrivateKey, EOSSignature};
+use eosio_keys::{EOSPublicKey, EOSPrivateKey};
 //use eosio_keys::hash::hash_sha256;
 use crate::api_types::TransactionIn;
 
-const WALLET_UNLOCKED_EXCEPTION: usize = 3120007;
+const WALLET_UNLOCKED_EXCEPTION: usize = 3_120_007;
+#[allow(dead_code)]
 pub const EOSIO_CHAIN_ID: &str = "cf057bbfb72640471fd910bcb67639c22df9f92470936cddc1ade0e2f2e7dc4f";
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -85,8 +86,7 @@ impl Wallet {
                     }
                     _ => {
                         eprintln!("{:#?}", e);
-                        assert!(false);
-                        Err("Fail-Wallet Unlock".into())
+                        panic!("Wallet unlock Fail");
                     }
                 }
             }
@@ -107,7 +107,7 @@ impl Wallet {
         }
     }
 
-    pub fn sign_digest(&self, digest: &Vec<u8>, pubkey: &EOSPublicKey) -> Result<String> {
+    pub fn sign_digest(&self, digest: &[u8], pubkey: &EOSPublicKey) -> Result<String> {
         let digest_b = vec_u8_to_str(digest)?;
         let value = serde_json::json![[digest_b, pubkey.to_eos_string()?]];
         let res = self.keos.blocking_req("/v1/wallet/sign_digest", value)?;
@@ -115,7 +115,7 @@ impl Wallet {
         Ok(sig)
     }
 }
-
+#[allow(dead_code)]
 pub(crate) fn get_wallet_pass() -> Result<String> {
     use std::fs;
     let pass = String::from(fs::read_to_string(".env")?.trim());
@@ -126,8 +126,9 @@ pub(crate) fn get_wallet_pass() -> Result<String> {
 mod test {
     use super::*;
     use eosio_keys::hash::hash_sha256;
+    use eosio_keys::EOSSignature;
 
-    const KEOSD_HOST: &str = "http://127.0.0.1:3999";
+    const KEOSD_HOST: &str = "http://127.0.0.1:3888";
 
     #[test]
     fn wallet_list_test() -> Result<()> {

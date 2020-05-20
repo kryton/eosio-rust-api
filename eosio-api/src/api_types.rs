@@ -5,7 +5,7 @@ pub(crate) mod eosio_datetime_format {
     use chrono::{DateTime, Utc, TimeZone, NaiveDateTime};
     use serde::{self, Deserialize, Serializer, Deserializer};
 
-    const FORMAT: &'static str = "%Y-%m-%dT%H:%M:%S";
+    const FORMAT: &str = "%Y-%m-%dT%H:%M:%S";
 
     // The signature of a serialize_with function must follow the pattern:
     //
@@ -40,8 +40,8 @@ pub(crate) mod eosio_datetime_format {
     {
         let s: String = String::deserialize(deserializer)?;
         let len = s.len();
-        let slice_len = if s.contains(".") {
-            len.checked_sub(4).unwrap_or(0)
+        let slice_len = if s.contains('.') {
+            len.saturating_sub(4)
         } else {
             len
         };

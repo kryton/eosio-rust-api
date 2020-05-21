@@ -3,16 +3,16 @@ use reqwest::StatusCode;
 use serde_json::Value;
 use reqwest::header::{CONTENT_TYPE, HeaderValue};
 use crate::errors::{Result, ErrorKind};
-use crate::api_types::{GetAccount, GetAbi, RequiredKeys, GetInfo, TransactionIn, ActionIn, AuthorizationIn, ErrorReply, PackedTransactionIn, GetCodeHash, GetRawABI};
+use crate::api_types::{GetAccount, GetAbi, RequiredKeys, GetInfo, TransactionIn, ActionIn, AuthorizationIn, ErrorReply, PackedTransactionIn, GetCodeHash, GetRawABI, TransactionResponse};
 use crate::wallet_types::Wallet;
 use eosio_keys::{EOSPublicKey, EOSPrivateKey, EOSSignature};
 use crate::wasm::WASM;
 use crate::abi::ABIName;
+use libabieos_sys::ABIEOS;
 //use crate::numeric::binary_to_base58;
 
 use chrono::{Utc, DateTime};
 use std::time::Instant;
-
 
 pub struct EOSRPC {
     pub client: Client,
@@ -97,10 +97,13 @@ impl EOSRPC {
     }
 
 
-    pub fn push_transaction(&self, wallet: Wallet, action: ActionIn, ref_block_num: usize, ref_block_prefix: usize, exp_time: DateTime<Utc>) -> Result<String> {
-        let ti = TransactionIn::simple(action, ref_block_num, ref_block_prefix, exp_time);
-        let packed_trx = serde_json::to_string(&ti)?;
-        let trx = vec_u8_to_str(&packed_trx.as_bytes().to_vec())?;
+    pub fn push_transaction(&self, abieos:&ABIEOS, wallet: Wallet, action: ActionIn, ref_block:&str, exp_time: DateTime<Utc>) -> Result<TransactionResponse> {
+        let ti = TransactionIn::simple(action, ref_block, exp_time)?;
+
+        let trx_json = serde_json::to_string(&ti)?;
+        let trx = unsafe {
+             abieos.json_to_hex("eosio", "transaction", &trx_json)
+        }?;
 
         let pubkeys = wallet.keys()?;
         let required_keys = self.get_required_keys(&ti, pubkeys)?;
@@ -111,27 +114,19 @@ impl EOSRPC {
             signatures: signed_transaction.signatures,
             compression: "none".to_string(),
             packed_context_free_data: "".to_string(),
-            packed_trx: trx,
+            packed_trx: trx.to_string(),
         });
-        match self.blocking_req("/v1/chain/push_transaction", in_val) {
-            Err(e) => {
-                eprintln!("{:#?}", e);
-                panic!("push tran");
-                //Err("FAIL".into())
-            }
-            Ok(s) => {
-                eprintln!("{}", s);
-                Ok(s)
-            }
-        }
+        let res =  self.blocking_req("/v1/chain/push_transaction", in_val)?;
+        let tr:TransactionResponse = serde_json::from_str(&res).unwrap();
+        Ok(tr)
     }
 
     #[allow(dead_code)]
-    fn push_transaction_int(&self, private_key: EOSPrivateKey, action: ActionIn, ref_block_num: usize, ref_block_prefix: usize, exp_time: DateTime<Utc>) -> Result<()> {
+    fn push_transaction_int(&self, private_key: EOSPrivateKey, action: ActionIn,  ref_block:&str, exp_time: DateTime<Utc>) -> Result<()> {
        eprintln!("push_transaction_int does not work. use push_transaction");
         let now = Instant::now();
 
-        let ti = TransactionIn::simple(action, ref_block_num, ref_block_prefix, exp_time);
+        let ti = TransactionIn::simple(action, ref_block, exp_time)?;
         let packed_trx = serde_json::to_string(&ti)?;
 
         let sig: EOSSignature = private_key.sign(packed_trx.as_bytes())?;
@@ -219,9 +214,11 @@ mod test {
     //use crate::api_types::GetAccount;
     use crate::wallet_types::{get_wallet_pass, EOSIO_CHAIN_ID};
     use chrono::{NaiveDateTime, Duration};
+    use std::fs;
+   // use std::convert::TryInto;
 
-    //const TEST_HOST: &str = "http://127.0.0.1:8888";
-    const TEST_HOST: &str = "https://api.testnet.eos.io";
+    const TEST_HOST: &str = "http://127.0.0.1:8888";
+    //const TEST_HOST: &str = "https://api.testnet.eos.io";
     const TEST_KEOSD: &str = "http://127.0.0.1:3888";
 
     const TEST_WALLET_NAME: &str = "default";
@@ -275,7 +272,8 @@ mod test {
             Ok(wasm) => {
                 let name = ABIName::from_str("fwonhjnefmps").unwrap();
                 let action = create_setcode_action(name, wasm)?;
-                let ti = TransactionIn::simple(action, gi.head_block_num, 0, exp_time);
+                eprintln!("{}",gi.last_irreversible_block_id);
+                let ti = TransactionIn::simple(action, &gi.last_irreversible_block_id, exp_time)?;
                 let rk = eos.get_required_keys(&ti, keys).unwrap();
                 assert!(rk.required_keys.len() > 0);
                 let k = &rk.required_keys[0];
@@ -293,18 +291,26 @@ mod test {
         let wallet_pass = get_wallet_pass()?;
         wallet.unlock(&TEST_WALLET_NAME, &wallet_pass)?;
 
-        let gi: GetInfo = eos.get_info()?;
-        let exp_time = gi.head_block_time + Duration::days(1);
 
-        let _key = EOSPrivateKey::from_string("PVT_K1_2jH3nnhxhR3zPUcsKaWWZC9ZmZAnKm3GAnFD1xynGJE1Znuvjd")?;
+       // let _key = EOSPrivateKey::from_string("PVT_K1_2jH3nnhxhR3zPUcsKaWWZC9ZmZAnKm3GAnFD1xynGJE1Znuvjd")?;
         let wasm = WASM::read_file("test/good.wasm")?;
 
         let name = ABIName::from_str("fwonhjnefmps").unwrap();
         let action = create_setcode_action(name, wasm)?;
-        let _res = eos.push_transaction(wallet, action, gi.head_block_num, 0, exp_time)?;
-        eprintln!("{:#?}", "hi");
+        let transaction_abi = fs::read_to_string("transaction.abi.json")?;
+        let gi: GetInfo = eos.get_info()?;
+        let exp_time = gi.head_block_time + Duration::seconds(1800);
 
-        Ok(())
+        unsafe {
+            let abieos: ABIEOS = ABIEOS::new_with_abi("eosio", &transaction_abi)?;
+
+            let res_int = eos.push_transaction(&abieos, wallet, action, &gi.last_irreversible_block_id, exp_time);
+            abieos.destroy();
+            let res = res_int?;
+           // eprintln!("{:#?}", res);
+            Ok(())
+        }
+
     }
 
     #[test]
@@ -312,14 +318,14 @@ mod test {
     fn blocking_push_txn_internal() -> Result<()> {
         let eos = EOSRPC::blocking(String::from(TEST_HOST));
         let gi: GetInfo = eos.get_info()?;
-        let exp_time = gi.head_block_time + Duration::days(1);
+        let exp_time = gi.head_block_time + Duration::seconds(1800);
 
         let key = EOSPrivateKey::from_string("PVT_K1_2jH3nnhxhR3zPUcsKaWWZC9ZmZAnKm3GAnFD1xynGJE1Znuvjd")?;
         let wasm = WASM::read_file("test/good.wasm")?;
 
         let name = ABIName::from_str("fwonhjnefmps").unwrap();
         let action = create_setcode_action(name, wasm)?;
-        let _res = eos.push_transaction_int(key, action, gi.head_block_num, 0, exp_time)?;
+        let _res = eos.push_transaction_int(key, action, &gi.last_irreversible_block_id, exp_time)?;
 
         Ok(())
     }

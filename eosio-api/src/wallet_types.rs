@@ -11,7 +11,7 @@ use crate::json_rpc::{EOSRPC, vec_u8_to_str};
 use serde_json::Value;
 use eosio_keys::{EOSPublicKey, EOSPrivateKey};
 //use eosio_keys::hash::hash_sha256;
-use crate::api_types::TransactionIn;
+use crate::api_types::{TransactionIn, TransactionInSigned};
 
 const WALLET_UNLOCKED_EXCEPTION: usize = 3_120_007;
 #[allow(dead_code)]
@@ -92,7 +92,7 @@ impl Wallet {
             }
         }
     }
-    pub fn sign_transaction(&self, transaction: TransactionIn, pubkey: Vec<EOSPublicKey>) -> Result<TransactionIn> {
+    pub fn sign_transaction(&self, transaction: TransactionIn, pubkey: Vec<EOSPublicKey>) -> Result<TransactionInSigned> {
         let mut pubkey_str: Vec<String> = vec![];
         for k in pubkey {
             pubkey_str.push(k.to_eos_string()?)
@@ -102,7 +102,7 @@ impl Wallet {
         } else {
             let value = serde_json::json![[transaction, pubkey_str, self.chain_id.as_ref().unwrap()]];
             let res = self.keos.blocking_req("/v1/wallet/sign_transaction", value)?;
-            let t: TransactionIn = serde_json::from_str(&res).unwrap();
+            let t: TransactionInSigned = serde_json::from_str(&res).unwrap();
             Ok(t)
         }
     }
@@ -183,7 +183,7 @@ mod test {
         let _res = wallet.unlock("default", &pass)?;
         let t = TransactionIn::dummy();
         let pubkey = EOSPublicKey::from_eos_string("EOS7ctUUZhtCGHnxUnh4Rg5eethj3qNS5S9fijyLMKgRsBLh8eMBB")?;
-        let ti: TransactionIn = wallet.sign_transaction(t, vec![pubkey])?;
+        let ti: TransactionInSigned = wallet.sign_transaction(t, vec![pubkey])?;
         let sigs = ti.signatures;
         assert_eq!(sigs.len(), 1);
         for sig in sigs {

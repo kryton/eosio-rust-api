@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc, Duration};
 use serde::{Serialize, Deserialize};
+use crate::errors::{Result};
 
 pub(crate) mod eosio_datetime_format {
     use chrono::{DateTime, Utc, TimeZone, NaiveDateTime};
@@ -224,8 +225,8 @@ pub struct GetInfo {
     server_version: String,
     chain_id: String,
     pub head_block_num: usize,
-    last_irreversible_block_num: usize,
-    last_irreversible_block_id: String,
+    pub last_irreversible_block_num: usize,
+    pub last_irreversible_block_id: String,
     head_block_id: String,
     #[serde(with = "eosio_datetime_format")]
     pub head_block_time: DateTime<Utc>,
@@ -242,8 +243,8 @@ pub struct GetInfo {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AuthorizationIn {
-    pub permission: String,
     pub actor: String,
+    pub permission: String,
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetCodeHash {
@@ -254,24 +255,77 @@ pub struct GetCodeHash {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ActionIn {
     pub account: String,
-    pub data: String,
-    pub authorization: Vec<AuthorizationIn>,
     pub name: String,
+    pub authorization: Vec<AuthorizationIn>,
+    pub data: String,
 }
-
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TransactionIn {
-    transaction_extensions: Vec<String>,
-    ref_block_num: usize,
-    max_net_usage_words: usize,
+pub struct TransactionInSigned {
     #[serde(with = "eosio_datetime_format")]
     expiration: DateTime<Utc>,
-    delay_sec: usize,
-    max_cpu_usage_ms: usize,
-    pub actions: Vec<ActionIn>,
-    ref_block_prefix: usize,
+    ref_block_num: u16,
+    ref_block_prefix: u32,
+    max_net_usage_words: u32,
+    max_cpu_usage_ms: u8,
+    delay_sec: u32,
     context_free_actions: Vec<String>,
+    pub actions: Vec<ActionIn>,
+    transaction_extensions: Vec<String>,
     pub signatures: Vec<String>, // KleosD 2.1 returns signatures here
+}
+
+/***
+ Be aware. The ordering of this struct is important.
+ EOSIO (abieos) expects the fields in the same order as shown in transaction.abi.json, and does not
+ handle extra fields either.
+
+ ref_block_num & ref_block_prefix are derived from the last_irreversible_block_id. retrieved from
+ the get_info call.
+
+--> thank you to @arhag for the detailed explanation.
+
+if I use the last_irreversible_block_id from getinfo — (I added the '-' for clarity)
+“0000daabcc9912b6-2359def6033b0463-d3a605c0ba7d6c77-9452ed321649db15”
+The block ID modifies the hash of the block header such that its first 4 bytes represents the block
+height as a big endian number. This is so that when it is printed out as a hex string, one could
+just grab the first 8 hex characters to quickly determine what the block height is.
+
+So the block height of that block you reference there is actually 0x0000daab (or 55979 in decimal).
+
+The ref_block_num field of a transaction is the height of the reference block (modulo 2^16).
+So in this case it would again be 55979.
+
+The ref_block_prefix field of a transaction is some 32-bits of the reference block ID
+(other than the first 4 bytes which represents the height and therefore serves no meaningful
+validation purposes) as a simple check to ensure you are referencing the actual block you meant
+to reference and not some other block on another fork that has the same block height.
+
+Those are taken from the 2nd 64-bit word of the block ID which is then cast to
+uint32_t so it is the least significant 32-bits of the 2nd 64-bit word.
+
+So the 2nd 64-bit word would be taken from the sequence of bytes
+(represented in hex): 0x23, 0x59, 0xde, 0xf6, 0x03, 0x3b, 0x04, 0x63.
+When pulled as a uint64_t number on a little endian machine, that is the number 0x63043b03f6de5923.
+And the least significant 32-bits of that number is 0xf6de5923 which is what ref_block_prefix
+should be.
+
+The ref_block_num would be 0x0000daab mod 2^16 which is 0xdaab.
+
+expiration has a max of now + 3600 seconds.
+delay_sec should be 0 for normal things. (it's used in deferred txn's which aren't really used).
+ */
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TransactionIn {
+    #[serde(with = "eosio_datetime_format")]
+    expiration: DateTime<Utc>,
+    ref_block_num: u16,
+    ref_block_prefix: u32,
+    max_net_usage_words: u32,
+    max_cpu_usage_ms: u8,
+    delay_sec: u32,
+    context_free_actions: Vec<String>,
+    pub actions: Vec<ActionIn>,
+    transaction_extensions: Vec<String>,
 }
 
 impl TransactionIn {
@@ -286,21 +340,49 @@ impl TransactionIn {
             actions: vec![],
             ref_block_prefix: 0,
             context_free_actions: vec![],
-            signatures: vec![],
         }
     }
-    pub fn simple(action: ActionIn, ref_block_num: usize, ref_block_prefix: usize, expiration: DateTime<Utc>) -> TransactionIn {
-        TransactionIn {
+    pub fn simple(action: ActionIn, ref_block_id:&str, expiration: DateTime<Utc>) -> Result<TransactionIn> {
+     //  let dummy="0000daabcc9912b62359def6033b0463d3a605c0ba7d6c779452ed321649db15";
+        let hash = TransactionIn::block_to_hash(ref_block_id)?;
+
+        let ref_block_num:u16 =   (((hash[0] >> 32 ) & 0xffff_ffff) as u16).to_le();
+        let ref_block_prefix:u32= ((hash[1]>>32 & 0xffff_ffff) as u32).to_be();
+
+        Ok(TransactionIn {
             transaction_extensions: vec![],
-            ref_block_num,
+            ref_block_num:ref_block_num,
             max_net_usage_words: 0,
             expiration,
             delay_sec: 0,
             max_cpu_usage_ms: 0,
             actions: vec![action],
-            ref_block_prefix,
+            ref_block_prefix ,
             context_free_actions: vec![],
-            signatures: vec![]
+        })
+    }
+
+    pub fn hex_to_u64(hex:&str) -> u64 {
+        let mut val: u64 = 0;
+        for char in hex.bytes() {
+            let digit = if char >= b'a' {
+                char + 10 - b'a'
+            } else {
+                char - b'0'
+            };
+            val = (val << 4) + digit as u64;
+        }
+        val
+    }
+    pub fn block_to_hash(ref_block_id: &str) -> Result<Vec<u64>> {
+        if ref_block_id.len() != 64 {
+            Err("Invalid ref_block id. expecting len of 64".into())
+        } else {
+            let v: Vec<u64> = vec![TransactionIn::hex_to_u64(&ref_block_id[0..16]),
+                                   TransactionIn::hex_to_u64(&ref_block_id[16..32]),
+                                   TransactionIn::hex_to_u64(&ref_block_id[33..48]),
+                                   TransactionIn::hex_to_u64(&ref_block_id[49..64])];
+            Ok(v)
         }
     }
 }
@@ -342,4 +424,88 @@ pub struct GetRawABI {
     pub code_hash: String,
     pub abi_hash: String,
     pub abi: String,
+}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TransactionResponse {
+    processed: TransactionProcessedResponse,
+    transaction_id: String,
+}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TransactionReceipt {
+cpu_usage_us: usize,
+net_usage_words : usize,
+status : String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AccountRamDelta {
+    account: String,
+    delta: isize,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ActionReceipt {
+    receiver:String,
+    abi_sequence:usize,
+    recv_sequence:usize,
+    // auth_sequence: Vec< String|usize>
+    code_sequence:usize,
+    global_sequence:usize,
+    act_digest:String
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ActionACTData {
+    code:Option<String>,
+    vmtype: usize,
+    account: String,
+    vmversion: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ActionACT {
+    authorization: Vec<Permission>,
+    name: String,
+    data: ActionACTData,
+    account: String,
+    hex_data: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ActionTrace {
+    account_ram_deltas: Vec<AccountRamDelta>,
+    console: Option<String>,
+    action_ordinal: isize,
+    // inline_traces:[],
+    receipt: ActionReceipt,
+    act: ActionACT,
+    context_free: bool,
+    producer_block_id: Option<String>,
+    except: Option<String>,
+    trx_id: String,
+    block_num: usize,
+    error_code: Option<String>,
+    #[serde(with = "eosio_datetime_format")]
+    block_time: DateTime<Utc>,
+    closest_unnotified_ancestor_action_ordinal: usize,
+    elapsed: usize,
+    receiver: String,
+    //account_disk_deltas : [],
+    return_value: Option<String>,
+}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TransactionProcessedResponse {
+    scheduled:bool,
+    error_code:Option<String>,
+    action_traces: Vec<ActionTrace>,
+    block_num:usize,
+    producer_block_id:Option<String>,
+    except:Option <String>,
+    receipt: TransactionReceipt,
+    id: String,
+    elapsed: usize,
+    net_usage: usize,
+    #[serde(with = "eosio_datetime_format")]
+    block_time: DateTime<Utc>,
+    account_ram_delta: Option<String>,
 }

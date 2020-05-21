@@ -29,6 +29,7 @@ error_chain!{
             EOSIOKeysError(eosio_keys::errors::Error);
             IOError(std::io::Error);
             UTF8Error(std::string::FromUtf8Error);
+            LibABIEOS(libabieos_sys::errors::Error);
         }
         errors {
             InvalidResponseContentType{

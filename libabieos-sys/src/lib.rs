@@ -6,7 +6,7 @@ use std::ptr::null;
 use std::ffi::{CStr, CString};
 
 include!("./bindings.rs");
-mod errors;
+pub mod errors;
 
 //#[macro_use]
 extern crate error_chain;

@@ -227,7 +227,7 @@ pub struct GetInfo {
     pub head_block_num: usize,
     pub last_irreversible_block_num: usize,
     pub last_irreversible_block_id: String,
-    head_block_id: String,
+    pub head_block_id: String,
     #[serde(with = "eosio_datetime_format")]
     pub head_block_time: DateTime<Utc>,
     head_block_producer: String,
@@ -249,7 +249,7 @@ pub struct AuthorizationIn {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetCodeHash {
     pub account_name: String,
-    pub hash: String,
+    pub code_hash: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -259,6 +259,7 @@ pub struct ActionIn {
     pub authorization: Vec<AuthorizationIn>,
     pub data: String,
 }
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TransactionInSigned {
     #[serde(with = "eosio_datetime_format")]
@@ -342,8 +343,7 @@ impl TransactionIn {
             context_free_actions: vec![],
         }
     }
-    pub fn simple(action: ActionIn, ref_block_id:&str, expiration: DateTime<Utc>) -> Result<TransactionIn> {
-     //  let dummy="0000daabcc9912b62359def6033b0463d3a605c0ba7d6c779452ed321649db15";
+    pub fn simple(actions: Vec<ActionIn>, ref_block_id:&str, expiration: DateTime<Utc>) -> Result<TransactionIn> {
         let hash = TransactionIn::block_to_hash(ref_block_id)?;
 
         let ref_block_num:u16 =   (((hash[0] >> 32 ) & 0xffff_ffff) as u16).to_le();
@@ -351,12 +351,12 @@ impl TransactionIn {
 
         Ok(TransactionIn {
             transaction_extensions: vec![],
-            ref_block_num:ref_block_num,
+            ref_block_num,
             max_net_usage_words: 0,
             expiration,
             delay_sec: 0,
             max_cpu_usage_ms: 0,
-            actions: vec![action],
+            actions,
             ref_block_prefix ,
             context_free_actions: vec![],
         })

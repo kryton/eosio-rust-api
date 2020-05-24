@@ -284,7 +284,7 @@ mod test {
         ];
         let gi: GetInfo = eos.get_info()?;
         let exp_time = gi.head_block_time + Duration::days(1);
-        let abi_abi = fs::read_to_string("src/abi.abi.json")?;
+        let abi_abi = fs::read_to_string("abi.abi.json")?;
 
         let wasm = WASM::read_file("test/good-2.wasm")?;
 
@@ -338,7 +338,7 @@ mod test {
         let name = ABIName::from_str("fwonhjnefmps").unwrap();
       //  let action_2 = create_setcode_action(&name, wasm_2)?;
         let transaction_abi = fs::read_to_string("transaction.abi.json")?;
-        let abi_abi = fs::read_to_string("src/abi.abi.json")?;
+        let abi_abi = fs::read_to_string("abi.abi.json")?;
         let eosio_abi_enc = eos.get_raw_abi("eosio")?.decode_abi()?;
 
 

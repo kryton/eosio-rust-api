@@ -6,11 +6,10 @@ const WASM_COOKIE: [u8;8] = [0x00,0x61,0x73,0x6d,0x01,0x00,0x00,0x00];
 //const HASH_LEN:usize = 16;
 
 pub struct WASM {
- //   hash:Vec<u8>,
     pub code:Vec<u8>
 }
 impl WASM {
-
+    const HEXMAP: [char;16]= ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9',  'a', 'b', 'c', 'd', 'e', 'f'];
     pub fn _read_hex_string(_in_str: String) -> Result<WASM> {
         Err("TBD".into())
     }
@@ -20,11 +19,22 @@ impl WASM {
         let matching = slice.iter().zip(WASM_COOKIE.iter()).filter(|&(a, b)| a == b).count();
 
         if matching == WASM_COOKIE.len() {
-         //   let hash = hash_sha256(&file);
             Ok(WASM{  code: file })
         } else {
             Err(ErrorKind::InvalidWASMFormat.into())
         }
+    }
+    pub fn to_hex(&self) -> String {
+        let mut s:String = String::new();
+        for byt in &self.code {
+            s.push( WASM::HEXMAP[(byt >> 4) as usize] );
+            s.push( WASM::HEXMAP[(byt & 0xf) as usize]);
+        }
+        s
+    }
+    pub fn dummy() -> Vec<u8> {
+       //WASM_COOKIE.to_vec()
+        Vec::new()
     }
 }
 

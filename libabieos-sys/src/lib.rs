@@ -73,11 +73,26 @@ impl ABIEOS {
 
     /// # Safety
     /// make sure you destroy this after use
-    pub unsafe fn hex_to_json(&self, contract_name: &str, type_str: &str, hex: &str) -> Result<String> {
+    pub unsafe fn hex_to_json(&self, contract_name: &str, type_str: &str, hex: &[u8]) -> Result<String> {
         let name = self.str_to_name(contract_name)?;
         let typeCS = CString::new(type_str).unwrap();
         let hexCS = CString::new(hex).unwrap();
         let json_p = abieos_hex_to_json(self.context, name, typeCS.as_ptr(), hexCS.as_ptr() as *const i8);
+        if json_p == null() {
+            self.abieos_error()?;
+            Err("FAIL".into()) // not reached
+        } else {
+            let json = ABIEOS::fix_json(CStr::from_ptr(json_p).to_str()?)?;
+            Ok(json)
+        }
+    }
+    /// # Safety
+    /// make sure you destroy this after use
+    pub unsafe fn bin_to_json(&self, contract_name: &str, type_str: &str, hex: &[u8]) -> Result<String> {
+        let name = self.str_to_name(contract_name)?;
+        let typeCS = CString::new(type_str).unwrap();
+       // let hexCS = CString::new(hex).unwrap();
+        let json_p = abieos_bin_to_json(self.context, name, typeCS.as_ptr(), hex.as_ptr() as *const i8, hex.len() as u64);
         if json_p == null() {
             self.abieos_error()?;
             Err("FAIL".into()) // not reached
@@ -168,7 +183,7 @@ mod test {
         unsafe {
             let abieos: ABIEOS = ABIEOS::new_with_abi("eosio",&abi)?;
             let do_hex_2_json = || -> Result<String> {
-                let json = abieos.hex_to_json("eosio", "abi_def", hex)?;
+                let json = abieos.hex_to_json("eosio", "abi_def", hex.as_bytes())?;
                 assert_eq!(jsonResult, json);
                 Ok(String::from(json))
 
@@ -192,7 +207,7 @@ mod test {
         unsafe {
             let abieos: ABIEOS = ABIEOS::new_with_abi("eosio",&abi)?;
             let do_hex_2_json = || -> Result<String> {
-                let json = abieos.hex_to_json("eosio", "transaction", hex)?;
+                let json = abieos.hex_to_json("eosio", "transaction", hex.as_bytes())?;
                 assert_eq!(jsonResult, json);
                 Ok(String::from(json))
             }();
@@ -234,7 +249,7 @@ mod test {
         unsafe {
             let abieos: ABIEOS = ABIEOS::new_with_abi("eosio",&abi)?;
             let _do_hex_2_json = || -> Result<String> {
-                let json = abieos.hex_to_json("eosio", "transaction", PACKED)?;
+                let json = abieos.hex_to_json("eosio", "transaction", PACKED.as_bytes())?;
                 let hex_out = abieos.json_to_hex("eosio", "transaction", &json)?;
                 assert_eq!(hex_out.to_ascii_lowercase(),PACKED);
                 Ok(json)

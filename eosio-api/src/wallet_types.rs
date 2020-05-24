@@ -7,11 +7,11 @@
 use serde::{Serialize, Deserialize};
 //use crate::api_types::eosio_datetime_format;
 use crate::errors::{Result, ErrorKind};
-use crate::json_rpc::{EOSRPC, vec_u8_to_str};
+use crate::json_rpc::{EOSRPC};
 use serde_json::Value;
 use eosio_keys::{EOSPublicKey, EOSPrivateKey};
 //use eosio_keys::hash::hash_sha256;
-use crate::api_types::{TransactionIn, TransactionInSigned};
+use crate::api_types::{TransactionIn, TransactionInSigned, vec_u8_to_hex};
 
 const WALLET_UNLOCKED_EXCEPTION: usize = 3_120_007;
 #[allow(dead_code)]
@@ -108,7 +108,7 @@ impl Wallet {
     }
 
     pub fn sign_digest(&self, digest: &[u8], pubkey: &EOSPublicKey) -> Result<String> {
-        let digest_b = vec_u8_to_str(digest)?;
+        let digest_b = vec_u8_to_hex(digest)?;
         let value = serde_json::json![[digest_b, pubkey.to_eos_string()?]];
         let res = self.keos.blocking_req("/v1/wallet/sign_digest", value)?;
         let sig: String = serde_json::from_str(&res).unwrap();

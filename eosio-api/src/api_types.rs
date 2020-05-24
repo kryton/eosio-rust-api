@@ -1,7 +1,41 @@
 use chrono::{DateTime, Utc, Duration};
 use serde::{Serialize, Deserialize};
 use crate::errors::{Result};
+use std::io::Bytes;
+use crate::abi::ABIName;
+use libabieos_sys::ABIEOS;
+use serde_json::{Map, Value};
+use std::collections::HashMap;
 
+pub (crate) mod eosio_action_trace {
+    use serde::{self, Deserialize, Serializer, Deserializer};
+    use serde_json::{Map, Value};
+    use std::collections::HashMap;
+
+    pub fn serialize<S>(
+        _string: &str,
+        _serializer: S,
+    ) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+    {
+        panic!("Deserialize only");
+      //  serializer.serialize_str(&s)
+    }
+
+    pub fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result< HashMap<String,Value>, D::Error>
+        where
+            D: Deserializer<'de>,
+    {
+
+       // let s: String = String::deserialize(deserializer)?;
+        let m:HashMap<String,Value> = HashMap::new();
+        Ok(m)
+
+    }
+}
 pub(crate) mod eosio_datetime_format {
     use chrono::{DateTime, Utc, TimeZone, NaiveDateTime};
     use serde::{self, Deserialize, Serializer, Deserializer};
@@ -57,6 +91,24 @@ pub(crate) mod eosio_datetime_format {
             Ok(dt) => Ok(Utc.from_utc_datetime(&dt)),
         }
     }
+}
+
+fn byte_to_char(x: u8) -> char {
+    (if x <= 9 {
+        x + b'0'
+    } else {
+        x - 10 + b'a'
+    }) as char
+}
+
+
+pub(crate) fn vec_u8_to_hex(out: &[u8]) -> Result<String> {
+    let mut str = String::with_capacity(out.len());
+    for x in out {
+        str.push(byte_to_char((x & 0xf0).checked_shr(4).unwrap_or(0)));
+        str.push(byte_to_char(x & 0x0f));
+    }
+    Ok(str)
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -425,12 +477,73 @@ pub struct GetRawABI {
     pub abi_hash: String,
     pub abi: String,
 }
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TransactionResponse {
-    processed: TransactionProcessedResponse,
-    transaction_id: String,
+impl GetRawABI {
+    /*
+    EOSIO doesn't seem to pad base64 correctly
+    see https://github.com/EOSIO/eos/issues/8161
+     */
+    fn fix_padding( str: &str) -> String {
+        let mut bare: String = str.replacen(  '=',"",4);
+        let len = bare.len();
+        let to_len = len + (4-(len %4));
+        for i in len .. to_len {
+            bare.push('=');
+        }
+        bare
+    }
+
+    pub fn decode_abi(&self) -> Result<Vec<u8>>{
+        let fixed = GetRawABI::fix_padding( &self.abi);
+        Ok(base64::decode(fixed)?)
+    }
 }
+
 #[derive(Debug, Serialize, Deserialize)]
+pub struct ActionSetcodeData {
+    pub(crate) account: String,
+    pub(crate) vmtype: u8,
+    pub(crate) vmversion: u8,
+    pub(crate) code: String,
+}
+
+
+impl ActionSetcodeData {
+
+    pub fn to_hex(&self, abieos:&ABIEOS) -> Result<String> {
+       // let v = serde_json::json![self];
+       // let json = v.to_string();
+        // abieos NEEDS the json to be in a specific order serde_json doesn't do that
+        let json = format!("{{ \"account\":\"{}\", \"vmtype\":{},\"vmversion\":{},\"code\":\"{}\" }}",
+                           self.account, self.vmtype,self.vmversion, self.code);
+        unsafe {
+            let hex = abieos.json_to_hex("eosio", "setcode", &json)?;Ok(String::from(hex))
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ActionSetData {
+    pub(crate) account: String,
+    pub(crate) abi: String,
+}
+impl ActionSetData {
+    pub fn to_hex(&self, abieos:&ABIEOS) -> Result<String> {
+        //let v = serde_json::json![self];
+        //let json = v.to_string();
+        let abi_hex = vec_u8_to_hex(&self.abi[0..].as_bytes())?;
+        let json = format!("{{ \"account\":\"{}\", \"abi\":\"{}\"}}",self.account,abi_hex);
+        unsafe {
+            let hex = abieos.json_to_hex("eosio", "setabi", &json);
+            Ok(String::from(hex?))
+        }
+    }
+}
+#[derive( Deserialize)]
+pub struct TransactionResponse {
+    pub processed: TransactionProcessedResponse,
+    pub transaction_id: String,
+}
+#[derive(Debug,  Deserialize)]
 pub struct TransactionReceipt {
 cpu_usage_us: usize,
 net_usage_words : usize,
@@ -443,7 +556,7 @@ pub struct AccountRamDelta {
     delta: isize,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct ActionReceipt {
     receiver:String,
     abi_sequence:usize,
@@ -454,24 +567,34 @@ pub struct ActionReceipt {
     act_digest:String
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ActionACTData {
-    code:Option<String>,
-    vmtype: usize,
-    account: String,
-    vmversion: usize,
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum ActionACTData {
+    ActionACTDataSetCode {
+        code: Option<String>,
+        vmtype: usize,
+        account: String,
+        vmversion: usize,
+    },
+    String,
+    /*
+    ActionACTDataSetABI {
+        account: String,
+        abi: String,
+    }*/
 }
-
-#[derive(Debug, Serialize, Deserialize)]
+#[derive( Deserialize)]
 pub struct ActionACT {
     authorization: Vec<Permission>,
     name: String,
-    data: ActionACTData,
+
+  //  #[serde(with = "eosio_action_trace")]
+   // data: HashMap<String,Value>,
     account: String,
     hex_data: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive( Deserialize)]
 pub struct ActionTrace {
     account_ram_deltas: Vec<AccountRamDelta>,
     console: Option<String>,
@@ -493,7 +616,7 @@ pub struct ActionTrace {
     //account_disk_deltas : [],
     return_value: Option<String>,
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive( Deserialize)]
 pub struct TransactionProcessedResponse {
     scheduled:bool,
     error_code:Option<String>,
@@ -501,8 +624,8 @@ pub struct TransactionProcessedResponse {
     block_num:usize,
     producer_block_id:Option<String>,
     except:Option <String>,
-    receipt: TransactionReceipt,
-    id: String,
+    pub receipt: TransactionReceipt,
+    pub id: String,
     elapsed: usize,
     net_usage: usize,
     #[serde(with = "eosio_datetime_format")]

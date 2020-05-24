@@ -30,6 +30,7 @@ error_chain!{
             IOError(std::io::Error);
             UTF8Error(std::string::FromUtf8Error);
             LibABIEOS(libabieos_sys::errors::Error);
+            Base64(base64::DecodeError);
         }
         errors {
             InvalidResponseContentType{

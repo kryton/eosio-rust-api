@@ -3,7 +3,8 @@ use reqwest::StatusCode;
 use serde_json::Value;
 use reqwest::header::{CONTENT_TYPE, HeaderValue};
 use crate::errors::{Result, ErrorKind};
-use crate::api_types::{GetAccount, GetAbi, RequiredKeys, GetInfo, TransactionIn, ActionIn, AuthorizationIn, ErrorReply, PackedTransactionIn, GetCodeHash, GetRawABI, TransactionResponse};
+//use crate::api_types::{GetAccount, GetAbi, RequiredKeys, GetInfo, TransactionIn, ActionIn, AuthorizationIn, ErrorReply, PackedTransactionIn, GetCodeHash, GetRawABI, TransactionResponse};
+use crate::api_types::*;
 use crate::wallet_types::Wallet;
 use eosio_keys::{EOSPublicKey, EOSPrivateKey, EOSSignature};
 use crate::wasm::WASM;
@@ -74,6 +75,7 @@ impl EOSRPC {
         let gc: GetCodeHash = serde_json::from_str(&res)?;
         Ok(gc)
     }
+
     pub fn get_raw_abi(&self, account_name: &str) -> Result<GetRawABI> {
         let value = serde_json::json!({ "account_name": account_name });
 
@@ -115,7 +117,7 @@ impl EOSRPC {
             packed_context_free_data: "".to_string(),
             packed_trx: trx.to_string(),
         };
-        eprintln!("{:#?}",pti);
+
         let in_val = serde_json::json!(pti);
         let res =  self.blocking_req("/v1/chain/push_transaction", in_val)?;
         let tr:TransactionResponse = serde_json::from_str(&res).unwrap();
@@ -161,73 +163,48 @@ impl EOSRPC {
  */
 }
 
-fn byte_to_char(x: u8) -> char {
-    (if x <= 9 {
-        x + b'0'
-    } else {
-        x - 10 + b'a'
-    }) as char
-}
-
-pub fn vec_u8_to_str(out: &[u8]) -> Result<String> {
-    let mut str = String::with_capacity(out.len());
-    for x in out {
-        str.push(byte_to_char((x & 0xf0).checked_shr(4).unwrap_or(0)));
-        str.push(byte_to_char(x & 0x0f));
-    }
-    Ok(str)
-}
-
-struct ActionSetcodeData<'a>{
-    name: &'a ABIName,
-    vmtype: u8,
-    vmversion: u8,
-    wasm: WASM,
-}
 
 
-impl <'a>ActionSetcodeData<'_>{
-    fn to_str(&self) -> Result<String> {
-
-        let buf =  self.name.value.to_ne_bytes().to_vec();
-// let out:Vec<u8> = Vec::<u8>::with_capacity(code_len+buf.len()+2);
-        let vm: Vec<u8> = [self.vmtype, self.vmversion].to_vec();
-        let c = self.wasm.code.to_vec();
-        let out = [ buf.to_vec(), vm, c].concat();
-        Ok(vec_u8_to_str(&out)?)
-    }
-}
-struct ActionSetData<'a> {
-    name: &'a ABIName,
-
-    abi: String,
-}
-impl <'a>ActionSetData<'_> {
-    fn to_str(&self) -> Result<String> {
-        let buf = self.name.value.to_ne_bytes().to_vec();
-        let c = self.abi[0..].as_bytes().to_vec();
-        let out = [ buf.to_vec(), c].concat();
-        Ok(vec_u8_to_str(&out)?)
-    }
-}
-
-pub fn create_setcode_action(name: &ABIName, code: WASM) -> Result<ActionIn> {
+pub fn create_setcode_action(abieos: &ABIEOS, name: &ABIName, code: WASM) -> Result<ActionIn> {
     let auth = AuthorizationIn { permission: "active".to_string(), actor: name.to_str()? };
     let v_auth: Vec<AuthorizationIn> = vec![auth];
-    let data = ActionSetcodeData { name:&name, vmtype: 0, vmversion: 0,  wasm:code }.to_str()?;
+    let data = ActionSetcodeData {
+        account:name.to_str()?,
+        vmtype: 0,
+        vmversion: 0,
+        code:vec_u8_to_hex(&code.code)?
+    }.to_hex(abieos)?;
 
     Ok(ActionIn {
         name: "setcode".to_string(),
         account: "eosio".to_string(),
         authorization: v_auth,
         data,
-
     })
 }
-pub fn create_setabi_action(name: &ABIName, abi: String) -> Result<ActionIn> {
+
+pub fn create_setcode_clear_action(abieos: &ABIEOS, name: &ABIName) -> Result<ActionIn> {
     let auth = AuthorizationIn { permission: "active".to_string(), actor: name.to_str()? };
     let v_auth: Vec<AuthorizationIn> = vec![auth];
-    let data = ActionSetData { name: &name,  abi: abi }.to_str()?;
+    let data = ActionSetcodeData {
+        account:name.to_str()?,
+        vmtype: 0,
+        vmversion: 0,
+        code:vec_u8_to_hex(&WASM::dummy())?
+    }.to_hex(abieos)?;
+
+    Ok(ActionIn {
+        name: "setcode".to_string(),
+        account: "eosio".to_string(),
+        authorization: v_auth,
+        data,
+    })
+}
+
+pub fn create_setabi_action(abieos:&ABIEOS, name: &ABIName, abi: String) -> Result<ActionIn> {
+    let auth = AuthorizationIn { permission: "active".to_string(), actor: name.to_str()? };
+    let v_auth: Vec<AuthorizationIn> = vec![auth];
+    let data = ActionSetData { account: name.to_str()?, abi }.to_hex(abieos)?;
 
     Ok(ActionIn {
         name: "setabi".to_string(),
@@ -235,6 +212,15 @@ pub fn create_setabi_action(name: &ABIName, abi: String) -> Result<ActionIn> {
         data,
         authorization: v_auth,
     })
+}
+
+unsafe fn get_abi_from_account (abieos_eosio: &ABIEOS, eos: &EOSRPC, account_name:&str)  -> Result<ABIEOS> {
+    let rawabi = eos.get_raw_abi("eosio")?;
+    let account_abi = rawabi.decode_abi()?;
+    let account_abi_json_r = abieos_eosio.bin_to_json("eosio", "abi_def", &account_abi);
+    let account_abi_json = account_abi_json_r?;
+
+    Ok(ABIEOS::new_with_abi(account_name, &account_abi_json)?)
 }
 
 #[cfg(test)]
@@ -289,7 +275,7 @@ mod test {
 
     #[test]
     fn blocking_get_required_keys() -> Result<()> {
-      //  let client = reqwest::blocking::Client::new();
+        //  let client = reqwest::blocking::Client::new();
         let eos = EOSRPC::blocking(String::from(TEST_HOST));
         let keys = vec![
             EOSPublicKey::from_eos_string("EOS6zUgp7uAV1pCTXZMGJyH3dLUSWJUkZWGA9WpWxyP2pCT3mAkNX").unwrap(),
@@ -298,20 +284,40 @@ mod test {
         ];
         let gi: GetInfo = eos.get_info()?;
         let exp_time = gi.head_block_time + Duration::days(1);
-        match WASM::read_file("test/good.wasm") {
-            Err(_) => assert!(false),
-            Ok(wasm) => {
-                let name = ABIName::from_str("fwonhjnefmps").unwrap();
-                let action = create_setcode_action(&name, wasm)?;
-                eprintln!("{}",gi.last_irreversible_block_id);
-                let ti = TransactionIn::simple(vec![action], &gi.last_irreversible_block_id, exp_time)?;
-                let rk = eos.get_required_keys(&ti, keys).unwrap();
-                assert!(rk.required_keys.len() > 0);
-                let k = &rk.required_keys[0];
+        let abi_abi = fs::read_to_string("src/abi.abi.json")?;
 
-                assert_eq!(k, "EOS8fdsPr1aKsmszNHeY4RrgupbabNQ5nmLgQWMEkTn2dENrPbRgP");
-                // eprintln!("{:#?}", rk);
+        let wasm = WASM::read_file("test/good-2.wasm")?;
+
+
+        let name = ABIName::from_str("fwonhjnefmps").unwrap();
+        let eosio_abi_enc = eos.get_raw_abi("eosio")?.decode_abi()?;
+
+
+        let action:ActionIn = unsafe {
+            let abieos_eosio: ABIEOS = ABIEOS::new_with_abi("eosio", &abi_abi)?;
+            let action_eos_r = get_abi_from_account(&abieos_eosio, &eos, "eosio");
+            if action_eos_r.is_err() {
+                abieos_eosio.destroy();
+                action_eos_r?;
+                Err("unreachable".into())
+            } else {
+                let action_eos = action_eos_r?;
+
+                let action_ = create_setcode_action(&action_eos, &name, wasm);
+                action_eos.destroy();
+                abieos_eosio.destroy();
+                action_
             }
+        }?;
+        let ti = TransactionIn::simple(vec![action], &gi.last_irreversible_block_id, exp_time)?;
+        let rk = eos.get_required_keys(&ti, keys).unwrap();
+        assert!(rk.required_keys.len() > 0);
+        let k = &rk.required_keys[0];
+
+        if k == "EOS7ctUUZhtCGHnxUnh4Rg5eethj3qNS5S9fijyLMKgRsBLh8eMBB" {
+            ()
+        } else {
+            assert_eq!(k, "EOS8fdsPr1aKsmszNHeY4RrgupbabNQ5nmLgQWMEkTn2dENrPbRgP");
         }
         Ok(())
     }
@@ -332,51 +338,48 @@ mod test {
         let name = ABIName::from_str("fwonhjnefmps").unwrap();
       //  let action_2 = create_setcode_action(&name, wasm_2)?;
         let transaction_abi = fs::read_to_string("transaction.abi.json")?;
+        let abi_abi = fs::read_to_string("src/abi.abi.json")?;
+        let eosio_abi_enc = eos.get_raw_abi("eosio")?.decode_abi()?;
+
+
         let gi: GetInfo = eos.get_info()?;
         let exp_time = gi.head_block_time + Duration::seconds(1800);
 
-      //  let code_hash = eos.get_code_hash("fwonhjnefmps")?;
-       // eprintln!("Code Hash - {} {:#?}",code_hash.account_name, code_hash.code_hash);
         unsafe {
-            let abieos: ABIEOS = ABIEOS::new_with_abi("eosio", &transaction_abi)?;
-/*
-            let res_int_fail_dup = eos.push_transaction(&abieos, &wallet, action_2, &gi.last_irreversible_block_id, exp_time);
-            match res_int_fail_dup {
-                Err(e) => {
-                    match e.0 {
-                        ErrorKind::InvalidResponseStatus(k) => {
-                            if k.code == ERROR_TXN_SET_EXACT_CODE {
-                                println!("Expected {}", k.code);
-                            } else {
-                                eprintln!("{:#?}", k);
-                                panic!("Push Transaction Test Failed ^^")
-                            }
-                        }
-                        _ => {
-                            eprintln!("{:#?}", e);
-                            panic!("Push Transaction Test Failed ^^");
-                        }
-                    }
-                },
-                Ok(_)=> {
-                    println!("SetCode worked");
-                    std::thread::sleep(std::time::Duration::from_secs(15));
-                    /* transaction might succeed */
-                },
+            let abieos_eosio: ABIEOS = ABIEOS::new_with_abi("eosio", &abi_abi)?;
+            let action_eos_r = get_abi_from_account(&abieos_eosio, &eos, "eosio");
+            if action_eos_r.is_err() {
+                abieos_eosio.destroy();
             }
+            let action_eos = action_eos_r?;
 
- */
-            let code_hash = eos.get_code_hash("fwonhjnefmps")?;
-            eprintln!("Code Hash - {} {}",code_hash.account_name, code_hash.code_hash);
-            let action = create_setcode_action(&name, wasm)?;
-            let action_abi = create_setabi_action(&name, wasm_abi)?;
-            let res_int = eos.push_transaction(&abieos, &wallet, vec![action], &gi.head_block_id, exp_time);
-            abieos.destroy();
-            let code_hash = eos.get_code_hash("fwonhjnefmps")?;
-            eprintln!("Code Hash2- {} {}",code_hash.account_name, code_hash.code_hash);
-            let _res = res_int?;
-           // eprintln!("{:#?}", res);
-            Ok(())
+            let action_clear = create_setcode_clear_action(&action_eos, &name);
+            let action = create_setcode_action(&action_eos, &name, wasm);
+            let action_abi = create_setabi_action(&action_eos, &name, wasm_abi);
+            action_eos.destroy();
+            abieos_eosio.destroy();
+            if action.is_err() || action_abi.is_err() || action_clear.is_err(){
+                action?;
+                action_abi?;
+                action_clear?;
+                Ok(())
+            } else {
+                let abieos_txn: ABIEOS = ABIEOS::new_with_abi("eosio", &transaction_abi)?;
+
+                let res_clear_int = eos.push_transaction(&abieos_txn, &wallet,
+                                                   vec![action_clear?],
+                                                   &gi.head_block_id, exp_time);
+
+                let res_int = eos.push_transaction(&abieos_txn, &wallet,
+                                                   vec![action?, action_abi?],
+                                                   &gi.head_block_id, exp_time);
+
+                abieos_txn.destroy();
+
+                let _res_clear = res_clear_int?;
+                let _res = res_int?;
+                Ok(())
+            }
         }
 
     }

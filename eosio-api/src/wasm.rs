@@ -1,6 +1,6 @@
 use crate::errors::{Result, ErrorKind};
 use std::fs;
-//use eosio_keys::hash::hash_sha256;
+use eosio_keys::hash::hash_sha256;
 
 const WASM_COOKIE: [u8;8] = [0x00,0x61,0x73,0x6d,0x01,0x00,0x00,0x00];
 //const HASH_LEN:usize = 16;
@@ -23,6 +23,9 @@ impl WASM {
         } else {
             Err(ErrorKind::InvalidWASMFormat.into())
         }
+    }
+    pub fn hash(&self) -> Vec<u8> {
+        hash_sha256(&self.code)
     }
     pub fn to_hex(&self) -> String {
         let mut s:String = String::new();

@@ -38,8 +38,8 @@ error_chain!{
                 display("invalid content type")
             }
             InvalidResponseStatus(err:ErrorInt) {
-                description("server responded with an error")
-                display("status code != OK {} {}", err.code, err.name)
+                description("EOSIO API error")
+                display("EOSIO API returned {}-{}({}) {:#?}", err.code, err.name,err.what,err.details)
             }
             InvalidWASMFormat {
                 description("WASM file has incorrect header")

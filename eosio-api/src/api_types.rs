@@ -1,11 +1,7 @@
 use chrono::{DateTime, Utc, Duration};
 use serde::{Serialize, Deserialize};
-use crate::errors::{Result};
-use std::io::Bytes;
-use crate::abi::ABIName;
+use crate::errors::Result;
 use libabieos_sys::ABIEOS;
-use serde_json::{Map, Value};
-use std::collections::HashMap;
 
 pub (crate) mod eosio_action_trace {
     use serde::{self, Deserialize, Serializer, Deserializer};
@@ -102,7 +98,7 @@ fn byte_to_char(x: u8) -> char {
 }
 
 
-pub(crate) fn vec_u8_to_hex(out: &[u8]) -> Result<String> {
+pub fn vec_u8_to_hex(out: &[u8]) -> Result<String> {
     let mut str = String::with_capacity(out.len());
     for x in out {
         str.push(byte_to_char((x & 0xf0).checked_shr(4).unwrap_or(0)));
@@ -275,7 +271,7 @@ pub struct RequiredKeys {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetInfo {
     server_version: String,
-    chain_id: String,
+    pub chain_id: String,
     pub head_block_num: usize,
     pub last_irreversible_block_num: usize,
     pub last_irreversible_block_id: String,
@@ -291,6 +287,11 @@ pub struct GetInfo {
     fork_db_head_block_num: usize,
     fork_db_head_block_id: String,
     server_full_version_string: Option<String>,
+}
+impl GetInfo {
+    pub fn set_exp_time(&self, duration:Duration) -> DateTime<Utc> {
+        self.head_block_time + duration
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -486,7 +487,7 @@ impl GetRawABI {
         let mut bare: String = str.replacen(  '=',"",4);
         let len = bare.len();
         let to_len = len + (4-(len %4));
-        for i in len .. to_len {
+        for _i in len .. to_len {
             bare.push('=');
         }
         bare
@@ -530,20 +531,22 @@ impl ActionSetData {
     pub fn to_hex(&self, abieos:&ABIEOS) -> Result<String> {
         //let v = serde_json::json![self];
         //let json = v.to_string();
-        let abi_hex = vec_u8_to_hex(&self.abi[0..].as_bytes())?;
-        let json = format!("{{ \"account\":\"{}\", \"abi\":\"{}\"}}",self.account,abi_hex);
+       // let abi_b64 = base64::encode(&self.abi);
+        //let abi_hex = vec_u8_to_hex(&abi_b64.into_bytes())?;
+
+        let json = format!("{{ \"account\":\"{}\", \"abi\":\"{}\"}}",self.account,self.abi);
         unsafe {
             let hex = abieos.json_to_hex("eosio", "setabi", &json);
             Ok(String::from(hex?))
         }
     }
 }
-#[derive( Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct TransactionResponse {
     pub processed: TransactionProcessedResponse,
     pub transaction_id: String,
 }
-#[derive(Debug,  Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct TransactionReceipt {
 cpu_usage_us: usize,
 net_usage_words : usize,
@@ -583,7 +586,7 @@ enum ActionACTData {
         abi: String,
     }*/
 }
-#[derive( Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct ActionACT {
     authorization: Vec<Permission>,
     name: String,
@@ -594,7 +597,7 @@ pub struct ActionACT {
     hex_data: String,
 }
 
-#[derive( Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct ActionTrace {
     account_ram_deltas: Vec<AccountRamDelta>,
     console: Option<String>,
@@ -616,12 +619,12 @@ pub struct ActionTrace {
     //account_disk_deltas : [],
     return_value: Option<String>,
 }
-#[derive( Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct TransactionProcessedResponse {
     scheduled:bool,
     error_code:Option<String>,
     action_traces: Vec<ActionTrace>,
-    block_num:usize,
+    pub block_num:usize,
     producer_block_id:Option<String>,
     except:Option <String>,
     pub receipt: TransactionReceipt,

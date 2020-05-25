@@ -7,23 +7,25 @@ extern crate serde_json;
 //#[macro_use]
 extern crate error_chain;
 #[macro_use] extern crate lazy_static;
+
+use rust_embed::RustEmbed;
+
 extern crate base64;
 extern crate bs58;
 extern crate ripemd160;
 extern crate eosio_keys;
 mod numeric;
-mod api_types;
+pub mod api_types;
 pub mod json_rpc;
-mod wasm;
+pub mod wasm;
 mod abi;
 //mod serialize;
-mod wallet_types;
+pub mod wallet_types;
 pub mod errors;
 
-
-pub fn hello() {
-    println!("hello");
-}
+#[derive(RustEmbed)]
+#[folder = "resources/"]
+pub struct AbiFiles;
 
 #[cfg(test)]
 mod tests {

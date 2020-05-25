@@ -23,7 +23,7 @@ fn run() -> Result<bool> {
             "https://api.testnet.eos.io"
         }
     };
-    let eos = EOSRPC::blocking(String::from(host));
+    let eos = EOSRPC::blocking(String::from(host))?;
     let gi = eos.get_info()?;
     eprintln!("{:#?}",gi);
 

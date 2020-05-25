@@ -116,7 +116,7 @@ impl Wallet {
     }
 }
 #[allow(dead_code)]
-pub(crate) fn get_wallet_pass() -> Result<String> {
+pub fn get_wallet_pass() -> Result<String> {
     use std::fs;
     let pass = String::from(fs::read_to_string(".env")?.trim());
     Ok(pass)
@@ -132,8 +132,7 @@ mod test {
 
     #[test]
     fn wallet_list_test() -> Result<()> {
-        let client = reqwest::blocking::Client::new();
-        let keos = EOSRPC { client, host: String::from(KEOSD_HOST) };
+        let keos = EOSRPC::blocking( String::from(KEOSD_HOST) )?;
         let _wallets = Wallet::create(keos).list()?;
 
         Ok(())
@@ -141,8 +140,7 @@ mod test {
 
     #[test]
     fn wallet_list_unlock() -> Result<()> {
-        let client = reqwest::blocking::Client::new();
-        let keos = EOSRPC { client, host: String::from(KEOSD_HOST) };
+        let keos = EOSRPC::blocking( String::from(KEOSD_HOST) )?;
         let pass = get_wallet_pass()?;
         let _wallets = Wallet::create(keos).unlock("default", &pass)?;
         Ok(())
@@ -150,8 +148,7 @@ mod test {
 
     #[test]
     fn wallet_list_keys() -> Result<()> {
-        let client = reqwest::blocking::Client::new();
-        let keos = EOSRPC { client, host: String::from(KEOSD_HOST) };
+        let keos = EOSRPC::blocking( String::from(KEOSD_HOST) )?;
         let pass = get_wallet_pass()?;
         let wallet = Wallet::create(keos);
         let _wallets = wallet.unlock("default", &pass)?;
@@ -162,8 +159,7 @@ mod test {
 
     #[test]
     fn wallet_list_private_keys() -> Result<()> {
-        let client = reqwest::blocking::Client::new();
-        let keos = EOSRPC { client, host: String::from(KEOSD_HOST) };
+        let keos = EOSRPC::blocking( String::from(KEOSD_HOST) )?;
         let pass = get_wallet_pass()?;
         let wallet = Wallet::create(keos);
         let _res = wallet.unlock("default", &pass)?;
@@ -176,8 +172,7 @@ mod test {
 
     #[test]
     fn wallet_sign_txn() -> Result<()> {
-        let client = reqwest::blocking::Client::new();
-        let keos = EOSRPC { client, host: String::from(KEOSD_HOST) };
+        let keos = EOSRPC::blocking( String::from(KEOSD_HOST) )?;
         let pass = get_wallet_pass()?;
         let wallet = Wallet::create_with_chain_id(keos, EOSIO_CHAIN_ID);
         let _res = wallet.unlock("default", &pass)?;
@@ -198,8 +193,7 @@ mod test {
 
     #[test]
     fn wallet_sign_digest() -> Result<()> {
-        let client = reqwest::blocking::Client::new();
-        let keos = EOSRPC { client, host: String::from(KEOSD_HOST) };
+        let keos = EOSRPC::blocking( String::from(KEOSD_HOST) )?;
         let pass = get_wallet_pass()?;
         let wallet = Wallet::create( keos);
         let _res = wallet.unlock("default", &pass)?;
@@ -207,10 +201,8 @@ mod test {
         let phrase: Vec<u8> = "Greg! The Stop sign".as_bytes().to_vec();
         let hash = hash_sha256(&phrase);
         let sig = wallet.sign_digest(&hash, &pubkey)?;
-      //  eprintln!("{}",sig);
         let eos_sig: EOSSignature = EOSSignature::from_string(&sig)?;
         eos_sig.verify_hash(&hash, &pubkey)?;
-       // eprintln!("{}", eos_sig.to_eos_string()?);
         assert!(eos_sig.is_canonical());
 
         Ok(())

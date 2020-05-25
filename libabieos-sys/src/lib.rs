@@ -45,6 +45,7 @@ impl ABIEOS {
             Ok(abi_obj)
         }
     }
+
     /// # Safety
     /// after destroy, don't use any other function
     pub unsafe fn destroy(&self) {
@@ -108,7 +109,8 @@ impl ABIEOS {
         let name = self.str_to_name(contract_name)?;
         let typeCS = CString::new(type_str).unwrap();
         let jsonCS = CString::new(json).unwrap();
-        let result = abieos_json_to_bin(self.context, name, typeCS.as_ptr(), jsonCS.as_ptr() as *const i8);
+        let result = abieos_json_to_bin_reorderable(self.context, name, typeCS.as_ptr(), jsonCS.as_ptr() as *const i8);
+       // let result = abieos_json_to_bin(self.context, name, typeCS.as_ptr(), jsonCS.as_ptr() as *const i8);
 
         if result == 0 {
             self.abieos_error()?;
@@ -239,6 +241,21 @@ mod test {
             }();
             abieos.destroy();
             do_json_2_hex?;
+        }
+        Ok(())
+    }
+    #[test]
+    pub fn test_ttt_abi() -> Result<()> {
+
+        let test_abi = fs::read_to_string("test/good-2.abi").unwrap();
+        let abi = fs::read_to_string("abi.abi.json").unwrap();
+
+        unsafe {
+            let abieos: ABIEOS = ABIEOS::new_with_abi("eosio",&abi)?;
+            let hex_out = abieos.json_to_hex("eosio", "abi_def", &test_abi);
+            abieos.destroy();
+            hex_out?;
+
         }
         Ok(())
     }

@@ -2,10 +2,11 @@ use chrono::{DateTime, Utc, Duration};
 use serde::{Serialize, Deserialize};
 use crate::errors::Result;
 use libabieos_sys::ABIEOS;
+use std::any::Any;
 
-pub (crate) mod eosio_action_trace {
+pub(crate) mod eosio_action_trace {
     use serde::{self, Deserialize, Serializer, Deserializer};
-    use serde_json::{Map, Value};
+    use serde_json:: Value;
     use std::collections::HashMap;
 
     pub fn serialize<S>(
@@ -16,22 +17,22 @@ pub (crate) mod eosio_action_trace {
             S: Serializer,
     {
         panic!("Deserialize only");
-      //  serializer.serialize_str(&s)
+        //  serializer.serialize_str(&s)
     }
 
     pub fn deserialize<'de, D>(
         deserializer: D,
-    ) -> Result< HashMap<String,Value>, D::Error>
+    ) -> Result<HashMap<String, Value>, D::Error>
         where
             D: Deserializer<'de>,
     {
 
-       // let s: String = String::deserialize(deserializer)?;
-        let m:HashMap<String,Value> = HashMap::new();
+        // let s: String = String::deserialize(deserializer)?;
+        let m: HashMap<String, Value> = HashMap::new();
         Ok(m)
-
     }
 }
+
 pub(crate) mod eosio_datetime_format {
     use chrono::{DateTime, Utc, TimeZone, NaiveDateTime};
     use serde::{self, Deserialize, Serializer, Deserializer};
@@ -288,8 +289,9 @@ pub struct GetInfo {
     fork_db_head_block_id: String,
     server_full_version_string: Option<String>,
 }
+
 impl GetInfo {
-    pub fn set_exp_time(&self, duration:Duration) -> DateTime<Utc> {
+    pub fn set_exp_time(&self, duration: Duration) -> DateTime<Utc> {
         self.head_block_time + duration
     }
 }
@@ -299,6 +301,7 @@ pub struct AuthorizationIn {
     pub actor: String,
     pub permission: String,
 }
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetCodeHash {
     pub account_name: String,
@@ -396,11 +399,11 @@ impl TransactionIn {
             context_free_actions: vec![],
         }
     }
-    pub fn simple(actions: Vec<ActionIn>, ref_block_id:&str, expiration: DateTime<Utc>) -> Result<TransactionIn> {
+    pub fn simple(actions: Vec<ActionIn>, ref_block_id: &str, expiration: DateTime<Utc>) -> Result<TransactionIn> {
         let hash = TransactionIn::block_to_hash(ref_block_id)?;
 
-        let ref_block_num:u16 =   (((hash[0] >> 32 ) & 0xffff_ffff) as u16).to_le();
-        let ref_block_prefix:u32= ((hash[1]>>32 & 0xffff_ffff) as u32).to_be();
+        let ref_block_num: u16 = (((hash[0] >> 32) & 0xffff_ffff) as u16).to_le();
+        let ref_block_prefix: u32 = ((hash[1] >> 32 & 0xffff_ffff) as u32).to_be();
 
         Ok(TransactionIn {
             transaction_extensions: vec![],
@@ -410,12 +413,12 @@ impl TransactionIn {
             delay_sec: 0,
             max_cpu_usage_ms: 0,
             actions,
-            ref_block_prefix ,
+            ref_block_prefix,
             context_free_actions: vec![],
         })
     }
 
-    pub fn hex_to_u64(hex:&str) -> u64 {
+    pub fn hex_to_u64(hex: &str) -> u64 {
         let mut val: u64 = 0;
         for char in hex.bytes() {
             let digit = if char >= b'a' {
@@ -478,23 +481,24 @@ pub struct GetRawABI {
     pub abi_hash: String,
     pub abi: String,
 }
+
 impl GetRawABI {
     /*
     EOSIO doesn't seem to pad base64 correctly
     see https://github.com/EOSIO/eos/issues/8161
      */
-    fn fix_padding( str: &str) -> String {
-        let mut bare: String = str.replacen(  '=',"",4);
+    fn fix_padding(str: &str) -> String {
+        let mut bare: String = str.replacen('=', "", 4);
         let len = bare.len();
-        let to_len = len + (4-(len %4));
-        for _i in len .. to_len {
+        let to_len = len + (4 - (len % 4));
+        for _i in len..to_len {
             bare.push('=');
         }
         bare
     }
 
-    pub fn decode_abi(&self) -> Result<Vec<u8>>{
-        let fixed = GetRawABI::fix_padding( &self.abi);
+    pub fn decode_abi(&self) -> Result<Vec<u8>> {
+        let fixed = GetRawABI::fix_padding(&self.abi);
         Ok(base64::decode(fixed)?)
     }
 }
@@ -509,15 +513,15 @@ pub struct ActionSetcodeData {
 
 
 impl ActionSetcodeData {
-
-    pub fn to_hex(&self, abieos:&ABIEOS) -> Result<String> {
-       // let v = serde_json::json![self];
-       // let json = v.to_string();
+    pub fn to_hex(&self, abieos: &ABIEOS) -> Result<String> {
+        // let v = serde_json::json![self];
+        // let json = v.to_string();
         // abieos NEEDS the json to be in a specific order serde_json doesn't do that
         let json = format!("{{ \"account\":\"{}\", \"vmtype\":{},\"vmversion\":{},\"code\":\"{}\" }}",
-                           self.account, self.vmtype,self.vmversion, self.code);
+                           self.account, self.vmtype, self.vmversion, self.code);
         unsafe {
-            let hex = abieos.json_to_hex("eosio", "setcode", &json)?;Ok(String::from(hex))
+            let hex = abieos.json_to_hex("eosio", "setcode", &json)?;
+            Ok(String::from(hex))
         }
     }
 }
@@ -527,30 +531,33 @@ pub struct ActionSetData {
     pub(crate) account: String,
     pub(crate) abi: String,
 }
+
 impl ActionSetData {
-    pub fn to_hex(&self, abieos:&ABIEOS) -> Result<String> {
+    pub fn to_hex(&self, abieos: &ABIEOS) -> Result<String> {
         //let v = serde_json::json![self];
         //let json = v.to_string();
-       // let abi_b64 = base64::encode(&self.abi);
+        // let abi_b64 = base64::encode(&self.abi);
         //let abi_hex = vec_u8_to_hex(&abi_b64.into_bytes())?;
 
-        let json = format!("{{ \"account\":\"{}\", \"abi\":\"{}\"}}",self.account,self.abi);
+        let json = format!("{{ \"account\":\"{}\", \"abi\":\"{}\"}}", self.account, self.abi);
         unsafe {
             let hex = abieos.json_to_hex("eosio", "setabi", &json);
             Ok(String::from(hex?))
         }
     }
 }
+
 #[derive(Debug, Deserialize)]
 pub struct TransactionResponse {
     pub processed: TransactionProcessedResponse,
     pub transaction_id: String,
 }
+
 #[derive(Debug, Deserialize)]
 pub struct TransactionReceipt {
-cpu_usage_us: usize,
-net_usage_words : usize,
-status : String,
+    cpu_usage_us: usize,
+    net_usage_words: usize,
+    status: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -561,13 +568,13 @@ pub struct AccountRamDelta {
 
 #[derive(Debug, Deserialize)]
 pub struct ActionReceipt {
-    receiver:String,
-    abi_sequence:usize,
-    recv_sequence:usize,
+    receiver: String,
+    abi_sequence: usize,
+    recv_sequence: usize,
     // auth_sequence: Vec< String|usize>
-    code_sequence:usize,
-    global_sequence:usize,
-    act_digest:String
+    code_sequence: usize,
+    global_sequence: usize,
+    act_digest: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -586,13 +593,14 @@ enum ActionACTData {
         abi: String,
     }*/
 }
+
 #[derive(Debug, Deserialize)]
 pub struct ActionACT {
     authorization: Vec<Permission>,
     name: String,
 
-  //  #[serde(with = "eosio_action_trace")]
-   // data: HashMap<String,Value>,
+    //  #[serde(with = "eosio_action_trace")]
+    // data: HashMap<String,Value>,
     account: String,
     hex_data: String,
 }
@@ -619,14 +627,15 @@ pub struct ActionTrace {
     //account_disk_deltas : [],
     return_value: Option<String>,
 }
+
 #[derive(Debug, Deserialize)]
 pub struct TransactionProcessedResponse {
-    scheduled:bool,
-    error_code:Option<String>,
+    scheduled: bool,
+    error_code: Option<String>,
     action_traces: Vec<ActionTrace>,
-    pub block_num:usize,
-    producer_block_id:Option<String>,
-    except:Option <String>,
+    pub block_num: usize,
+    producer_block_id: Option<String>,
+    except: Option<String>,
     pub receipt: TransactionReceipt,
     pub id: String,
     elapsed: usize,
@@ -634,4 +643,117 @@ pub struct TransactionProcessedResponse {
     #[serde(with = "eosio_datetime_format")]
     block_time: DateTime<Utc>,
     account_ram_delta: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BlockTransactionAction {
+    pub account: String,
+    pub name: String,
+    pub authorization: Vec<AuthorizationIn>,
+    pub data: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BlockTransaction {
+    #[serde(with = "eosio_datetime_format")]
+    expiration: DateTime<Utc>,
+    ref_block_num: u16,
+    ref_block_prefix: u32,
+    max_net_usage_words: u32,
+    max_cpu_usage_ms: u8,
+    delay_sec: u32,
+    context_free_actions: Vec<String>,
+    pub actions: Vec<BlockTransactionAction>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BlockTransactionTrx {
+    pub id: String,
+    signatures: Vec<String>,
+    compression: String,
+    packed_context_free_data: String,
+    // context_free_data: Vec<?>
+    packed_trx: String,
+    pub transaction: BlockTransaction,
+
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BlockTransactions {
+    status: String,
+    cpu_usage_us: usize,
+    net_usage_words: usize,
+    pub trx: BlockTransactionTrx,
+
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GetBlock {
+    #[serde(with = "eosio_datetime_format")]
+    timestamp: DateTime<Utc>,
+    producer: String,
+    confirmed: usize,
+    previous: String,
+    transaction_mroot: String,
+    action_mroot: String,
+    schedule_version: usize,
+    new_producers: Option<String>,
+    producer_signature: String,
+    pub transactions: Vec<BlockTransactions>,
+    pub id: String,
+    pub block_num: usize,
+    ref_block_prefix: usize,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TableRow {
+    pub code: String,
+    pub scope: String,
+    pub table: String,
+    pub payer: String,
+    pub count: usize,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GetTableByScope {
+    pub rows: Vec<TableRow>,
+    pub more: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetTableByScopeIn {
+    pub code: String,
+    pub table: String,
+    pub lower_bound: String,
+    pub upper_bound: String,
+    pub limit: usize,
+    pub reverse: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetTableRowsIn {
+    pub json: bool, /// set this to false if you are using GetTableRow
+    pub code: String,
+    pub scope: String,
+    pub table: String,
+    pub table_key: String,
+    pub lower_bound: String,
+    pub upper_bound: String,
+    pub limit: usize,
+    pub key_type: String,
+    pub index_position: String,
+    pub encode_type: String,
+    pub reverse: bool,
+    pub show_payer: bool,
+}
+#[derive(Debug, Deserialize)]
+pub struct GetTableRow {
+   pub data:String, /// set to json:false in request, returns abieos-packed version
+   pub payer:Option<String>,
+}
+#[derive(Debug, Deserialize)]
+pub struct GetTableRows {
+    pub rows: Vec<GetTableRow>,
+    pub more: bool,
+    pub next_key:String,
 }

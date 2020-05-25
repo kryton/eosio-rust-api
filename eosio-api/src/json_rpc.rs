@@ -97,6 +97,20 @@ impl EOSRPC {
         let gr: GetRawABI = serde_json::from_str(&res)?;
         Ok(gr)
     }
+    pub fn get_block_num(&self, block_num: usize) -> Result<GetBlock> {
+        let value = serde_json::json!({ "block_num_or_id": block_num });
+
+        let res = self.blocking_req("/v1/chain/get_block", value)?;
+        let gb: GetBlock = serde_json::from_str(&res)?;
+        Ok(gb)
+    }
+    pub fn get_block_id(&self, block_id: &str) -> Result<GetBlock> {
+        let value = serde_json::json!({ "block_num_or_id": block_id });
+
+        let res = self.blocking_req("/v1/chain/get_block", value)?;
+        let gb: GetBlock = serde_json::from_str(&res)?;
+        Ok(gb)
+    }
 
     pub fn get_required_keys(&self, transaction: &TransactionIn, keys: Vec<EOSPublicKey>) -> Result<RequiredKeys> {
         let mut key_str: Vec<String> = vec![];
@@ -111,7 +125,7 @@ impl EOSRPC {
         Ok(rk)
     }
 
-    pub  fn get_abi_from_account(&self, abieos_eosio: &ABIEOS, account_name: &str) -> Result<ABIEOS> {
+    pub fn get_abi_from_account(&self, abieos_eosio: &ABIEOS, account_name: &str) -> Result<ABIEOS> {
         let rawabi = self.get_raw_abi(account_name)?;
         let account_abi = rawabi.decode_abi()?;
         unsafe {
@@ -143,6 +157,47 @@ impl EOSRPC {
         let in_val = serde_json::json!(pti);
         let res = self.blocking_req("/v1/chain/push_transaction", in_val)?;
         let tr: TransactionResponse = serde_json::from_str(&res).unwrap();
+        Ok(tr)
+    }
+
+    pub fn get_table_rows(&self, code: &str, scope: &str, table: &str, table_key: &str,
+                          lower_bound: &str, upper_bound: &str, limit: usize, key_type: &str,
+                          index_position: &str, encode_type: &str, reverse: bool,
+                          show_payer: bool) -> Result<GetTableRows> {
+        let in_j = GetTableRowsIn {
+            json: false,
+            code: code.parse().unwrap(),
+            scope: scope.parse().unwrap(),
+            table: table.parse().unwrap(),
+            table_key: table_key.parse().unwrap(),
+            lower_bound: lower_bound.parse().unwrap(),
+            upper_bound: upper_bound.parse().unwrap(),
+            limit,
+            key_type: key_type.parse().unwrap(),
+            index_position: index_position.parse().unwrap(),
+            encode_type: encode_type.parse().unwrap(),
+            reverse,
+            show_payer,
+        };
+        let in_val = serde_json::json!(in_j);
+        let res = self.blocking_req("/v1/chain/get_table_rows", in_val)?;
+        let tr: GetTableRows = serde_json::from_str(&res).unwrap();
+        Ok(tr)
+    }
+    pub fn get_table_by_scope(&self,code:&str, table:&str,
+                              lower_bound:&str, upper_bound:&str,
+                              limit:usize, reverse:bool) -> Result<GetTableByScope> {
+        let pti = GetTableByScopeIn {
+            code: code.parse().unwrap(),
+            table: table.parse().unwrap(),
+            lower_bound: lower_bound.parse().unwrap(),
+            upper_bound: upper_bound.parse().unwrap(),
+            limit,
+            reverse
+        };
+        let in_val = serde_json::json!(pti);
+        let res = self.blocking_req("/v1/chain/get_table_by_scope", in_val)?;
+        let tr: GetTableByScope = serde_json::from_str(&res).unwrap();
         Ok(tr)
     }
 }
@@ -246,7 +301,7 @@ mod test {
     // use std::convert::TryInto;
 
     const TEST_HOST: &str = "http://127.0.0.1:8888";
-    //const TEST_HOST: &str = "https://api.testnet.eos.io";
+   // const TEST_HOST: &str = "https://api.testnet.eos.io";
     const TEST_KEOSD: &str = "http://127.0.0.1:3888";
 
     const TEST_WALLET_NAME: &str = "default";
@@ -312,11 +367,39 @@ mod test {
         assert!(rk.required_keys.len() > 0);
         let k = &rk.required_keys[0];
 
+        // accidentally set one of chains to have 'owner' key instead of 'active'
         if k == "EOS7ctUUZhtCGHnxUnh4Rg5eethj3qNS5S9fijyLMKgRsBLh8eMBB" {
             ()
         } else {
             assert_eq!(k, "EOS8fdsPr1aKsmszNHeY4RrgupbabNQ5nmLgQWMEkTn2dENrPbRgP");
         }
+        Ok(())
+    }
+
+    /// these two need some static thing which will exist over all test environments
+    /// the TicTacToe example deletes ALL of it's data on successful completion, so can't really be
+    /// used
+    ///
+    #[test]
+    fn blocking_table_rows() -> Result<()> {
+        let eos = EOSRPC::blocking(String::from(TEST_HOST))?;
+        let _r = eos.get_table_rows(TEST_ACCOUNT_NAME,"tictactoe",
+                                   "games", "", "", "",
+                                   10, "", "", "dec",
+                                   false, true);
+        Ok(())
+    }
+
+    /// these two need some static thing which will exist over all test environments
+    /// the TicTacToe example deletes ALL of it's data on successful completion, so can't really be
+    /// used
+    ///
+    #[test]
+    fn blocking_table_by_scope() -> Result<()> {
+        let eos = EOSRPC::blocking(String::from(TEST_HOST))?;
+        let _r = eos.get_table_by_scope("eosio.token","",
+                                       TEST_ACCOUNT_NAME,"",
+                                       10,false);
         Ok(())
     }
 
@@ -326,22 +409,28 @@ mod test {
         let wallet = Wallet::create_with_chain_id(EOSRPC::blocking(String::from(TEST_KEOSD))?, EOSIO_CHAIN_ID);
         let wallet_pass = get_wallet_pass()?;
         wallet.unlock(&TEST_WALLET_NAME, &wallet_pass)?;
-
-
-        // let _key = EOSPrivateKey::from_string("PVT_K1_2jH3nnhxhR3zPUcsKaWWZC9ZmZAnKm3GAnFD1xynGJE1Znuvjd")?;
         let wasm = WASM::read_file("test/good-2.wasm")?;
         let wasm_abi = fs::read_to_string("test/good-2.abi")?;
-        //  let wasm_2 = WASM::read_file("test/good-2.wasm")?;
 
         let name = TEST_ACCOUNT_NAME;
 
         let gi: GetInfo = eos.get_info()?;
         let exp_time = gi.set_exp_time(Duration::seconds(1800));
-        let abi_trio = AbiTrio::create("eosio","eosio",&eos)?;
+        let abi_trio = AbiTrio::create("eosio", "eosio", &eos)?;
+
         let action_clear = create_setcode_clear_action(&abi_trio.acct_abi, &name).map_err(|e| {
             abi_trio.destroy();
             Error::with_chain(e, "blocking_push_txn/create_setcode_clear_action")
         })?;
+
+
+        let res_clear_int = eos.push_transaction(&abi_trio.txn_abi, &wallet,
+                                                 vec![action_clear],
+                                                 &gi.head_block_id, exp_time).map_err(|e| {
+            abi_trio.destroy();
+            Error::with_chain(e, "blocking_push_txn/push_transaction(clear)")
+        })?;
+
         let action = create_setcode_action(&abi_trio.acct_abi, &name, &wasm).map_err(|e| {
             abi_trio.destroy();
             Error::with_chain(e, "blocking_push_txn/create_setcode_action")
@@ -350,12 +439,7 @@ mod test {
             abi_trio.destroy();
             Error::with_chain(e, "blocking_push_txn/create_setabi_action")
         })?;
-        let res_clear_int = eos.push_transaction(&abi_trio.txn_abi, &wallet,
-                                                 vec![action_clear],
-                                                 &gi.head_block_id, exp_time).map_err(|e| {
-            abi_trio.destroy();
-            Error::with_chain(e, "blocking_push_txn/push_transaction(clear)")
-        })?;
+
         let res_int = eos.push_transaction(&abi_trio.txn_abi, &wallet,
                                            vec![action, action_abi],
                                            &gi.head_block_id, exp_time).map_err(|e| {
@@ -365,7 +449,6 @@ mod test {
 
         abi_trio.destroy();
         Ok(())
-
     }
 
     #[test]
@@ -375,7 +458,6 @@ mod test {
 
         Ok(())
     }
-
 
     #[test]
     fn blocking_getsetabi() -> Result<()> {
@@ -405,10 +487,18 @@ mod test {
                 Error::with_chain(e, "push_transaction")
             })?;
         trio.destroy();
-        println!("Trying to retrieve it");
-        let get_abi = eos.get_abi(name)?;
-        println!("{:#?}", get_abi);
 
+        let get_abi = eos.get_abi(name)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn block_getblock() -> Result<()> {
+        let eos = EOSRPC::blocking(String::from(TEST_HOST))?;
+        let block = eos.get_block_num(144198)?;
+        let block2 = eos.get_block_id(&block.id)?;
+        assert_eq!(block.block_num, block2.block_num);
         Ok(())
     }
 }

@@ -104,8 +104,34 @@ pub fn close_game_action(abieos: &ABIEOS, main: &str, host: &str, challenger: &s
     }
 }
 
+pub fn move_game_action(abieos: &ABIEOS, main: &str, host: &str, challenger: &str,
+                        by: &str, row: u16, col: u16) -> Result<ActionIn> {
+    // person doing the move 'by' authorizes it.
+    let auth = AuthorizationIn { permission: "active".to_string(), actor: String::from(by) };
+    let v_auth: Vec<AuthorizationIn> = vec![auth];
+    let js = json!( {
+        "challenger": String::from(challenger),
+        "host":String::from(host),
+        "by":String::from(by),
+        "row":row,
+        "column":col
+    }).to_string();
 
-fn start_game(wallet: &Wallet, eos: &EOSRPC, game_acct: &str, player_host: &str, player_challenger: &str) -> Result<(usize,String)> {
+    unsafe {
+        let hex = abieos.json_to_hex(main, "move", &js)?;
+        let data = String::from(hex);
+
+        Ok(ActionIn {
+            name: "move".to_string(),
+            account: main.to_string(),
+            authorization: v_auth,
+            data,
+        })
+    }
+}
+
+
+fn start_game(wallet: &Wallet, eos: &EOSRPC, game_acct: &str, player_host: &str, player_challenger: &str) -> Result<(usize, String)> {
     let info = eos.get_info()?;
     let exp_time = info.set_exp_time(Duration::seconds(3600));
     let abi_trio: AbiTrio = AbiTrio::create("eosio", game_acct, eos)?;
@@ -123,7 +149,7 @@ fn start_game(wallet: &Wallet, eos: &EOSRPC, game_acct: &str, player_host: &str,
     Ok((tr.processed.block_num, tr.transaction_id))
 }
 
-fn end_game(wallet: &Wallet, eos: &EOSRPC, game_acct: &str, player_host: &str, player_challenger: &str) -> Result<(usize,String)> {
+fn end_game(wallet: &Wallet, eos: &EOSRPC, game_acct: &str, player_host: &str, player_challenger: &str) -> Result<(usize, String)> {
     let info = eos.get_info()?;
     let exp_time = info.set_exp_time(Duration::seconds(3600));
     let abi_trio: AbiTrio = AbiTrio::create("eosio", game_acct, eos)?;
@@ -141,6 +167,47 @@ fn end_game(wallet: &Wallet, eos: &EOSRPC, game_acct: &str, player_host: &str, p
     Ok((tr.processed.block_num, tr.transaction_id))
 }
 
+fn move_game(wallet: &Wallet, eos: &EOSRPC, game_acct: &str,
+             player_host: &str, player_challenger: &str,
+             by: &str, row: u16, col: u16) -> Result<(usize, String)> {
+    let info = eos.get_info()?;
+    let exp_time = info.set_exp_time(Duration::seconds(3600));
+    let abi_trio: AbiTrio = AbiTrio::create("eosio", game_acct, eos)?;
+    let ca = move_game_action(&abi_trio.acct_abi, game_acct,
+                              player_host, player_challenger,
+                              by, row, col).map_err(|e| {
+        abi_trio.destroy();
+        Error::with_chain(e, "move_game/move_game_action")
+    })?;
+    let tr = eos.push_transaction(&abi_trio.txn_abi, &wallet,
+                                  vec![ca],
+                                  &info.head_block_id, exp_time).map_err(|e| {
+        abi_trio.destroy();
+        Error::with_chain(e, "move_game/push_transaction")
+    })?;
+    abi_trio.destroy();
+    Ok((tr.processed.block_num, tr.transaction_id))
+}
+
+fn get_board(eos: &EOSRPC, game_acct: &str) -> Result<()> {
+    let abi_trio: AbiTrio = AbiTrio::create("eosio", game_acct, eos)?;
+
+    let tr = eos.get_table_rows(&game_acct,"tictactoe",
+                                "games","",
+                                "","",10,
+                                "","","dec",false,true)?;
+    for row in tr.rows {
+        let data = row.data;
+        unsafe {
+            let str = abi_trio.acct_abi.hex_to_json(&game_acct,"game",data.as_bytes());
+            println!("{:?}",str);
+
+        }
+    }
+    Ok(())
+
+}
+
 fn get_args() -> Result<(String, String, String, String, String)> {
     let args: Vec<String> = env::args().collect();
     let host = {
@@ -148,6 +215,7 @@ fn get_args() -> Result<(String, String, String, String, String)> {
             &args[1]
         } else {
             "http://127.0.0.1:8888"
+            //  "https://api.testnet.eos.io"
         }
     };
     let wallet_url = {
@@ -193,9 +261,31 @@ fn run() -> Result<bool> {
 
     wallet.unlock("default", &wallet_pass)?;
     upgrade_wasm(&wallet, &eos, &ttt_wasm, &ttt_abi, &account, &info)?;
+
+    // clears a game if there way one
+    let _trans_end = end_game(&wallet, &eos, &account, &player_host, &player_challenger);
+
+
     let trans_start = start_game(&wallet, &eos, &account, &player_host, &player_challenger)?;
     println!("Started {:?}", trans_start);
 
+    let moves = vec![
+        (&player_host,1,1),
+        (&player_challenger,0,0),
+        (&player_host,1,0),
+        (&player_challenger,2,2),
+        (&player_host,1,2),
+
+    ];
+    for g_move in moves {
+      //  println!("Move {} {}/{}", &g_move.0, g_move.1, g_move.2);
+        let trans_move=move_game(&wallet,&eos,&account,
+                                 &player_host, &player_challenger,
+                  &g_move.0, g_move.1, g_move.2)?;
+        println!("Move {} {:?}", &g_move.0,trans_move);
+        get_board(&eos,&account)?;
+    }
+   // get_board(&eos,&account)?;
     let trans_end = end_game(&wallet, &eos, &account, &player_host, &player_challenger)?;
     println!("Ended {:?}", trans_end);
 
@@ -203,7 +293,8 @@ fn run() -> Result<bool> {
 }
 
 fn main() {
-    println!("This example uploads the tic-tac-toe wasm, and exec's an action on it");
+    println!("This example uploads the tic-tac-toe wasm, and pushes actions on it");
+    println!("It also fetches data from RAM to see the 'game'");
     if let Err(ref e) = run() {
         println!("error: {}", e);
 

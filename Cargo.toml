@@ -8,8 +8,8 @@ description="sample client utilizing EOSIO API"
 
 [workspace]
 members = [
-    "eosio-api",
-    "eosio-keys",
+    "eosio-client-api",
+    "eosio-client-keys",
     "libabieos-sys",
 ]
 exclude = [
@@ -17,6 +17,6 @@ exclude = [
 ]
 
 [dependencies]
-eosio-api= { path = "./eosio-api"}
-eosio-keys = {path = "./eosio-keys"}
+eosio-client-api= { path = "eosio-client-api"}
+eosio-client-keys = {path = "eosio-client-keys"}
 error-chain = "0.12.2"

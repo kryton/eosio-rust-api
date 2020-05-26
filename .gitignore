@@ -4,4 +4,4 @@
 /*/Cargo.lock
 .DS_Store
 /*/.idea
-/eosio-api/.env
+/eosio-client-api/.env

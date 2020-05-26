@@ -9,8 +9,8 @@ use serde::{Serialize, Deserialize};
 use crate::errors::{Result, ErrorKind};
 use crate::json_rpc::{EOSRPC};
 use serde_json::Value;
-use eosio_keys::{EOSPublicKey, EOSPrivateKey};
-//use eosio_keys::hash::hash_sha256;
+use eosio_client_keys::{EOSPublicKey, EOSPrivateKey};
+
 use crate::api_types::{TransactionIn, TransactionInSigned, vec_u8_to_hex};
 
 const WALLET_UNLOCKED_EXCEPTION: usize = 3_120_007;
@@ -125,8 +125,8 @@ pub fn get_wallet_pass() -> Result<String> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use eosio_keys::hash::hash_sha256;
-    use eosio_keys::EOSSignature;
+    use eosio_client_keys::hash::hash_sha256;
+    use eosio_client_keys::EOSSignature;
 
     const KEOSD_HOST: &str = "http://127.0.0.1:3888";
 

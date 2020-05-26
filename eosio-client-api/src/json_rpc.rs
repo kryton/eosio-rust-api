@@ -5,10 +5,10 @@ use reqwest::header::{CONTENT_TYPE, HeaderValue};
 use crate::errors::{Result, ErrorKind, Error};
 use crate::api_types::*;
 use crate::wallet_types::Wallet;
-use eosio_keys::EOSPublicKey;
+use eosio_client_keys::EOSPublicKey;
 use crate::wasm::WASM;
 use libabieos_sys::ABIEOS;
-use rust_embed::RustEmbed;
+//use rust_embed::RustEmbed;
 
 use chrono::{Utc, DateTime};
 use crate::AbiFiles;
@@ -297,8 +297,6 @@ mod test {
     use crate::wallet_types::{get_wallet_pass, EOSIO_CHAIN_ID};
     use chrono::{NaiveDateTime, Duration};
     use std::fs;
-    use std::borrow::Borrow;
-    // use std::convert::TryInto;
 
     const TEST_HOST: &str = "http://127.0.0.1:8888";
    // const TEST_HOST: &str = "https://api.testnet.eos.io";
@@ -424,7 +422,7 @@ mod test {
         })?;
 
 
-        let res_clear_int = eos.push_transaction(&abi_trio.txn_abi, &wallet,
+        let _res_clear_int = eos.push_transaction(&abi_trio.txn_abi, &wallet,
                                                  vec![action_clear],
                                                  &gi.head_block_id, exp_time).map_err(|e| {
             abi_trio.destroy();
@@ -440,7 +438,7 @@ mod test {
             Error::with_chain(e, "blocking_push_txn/create_setabi_action")
         })?;
 
-        let res_int = eos.push_transaction(&abi_trio.txn_abi, &wallet,
+        let _res_int = eos.push_transaction(&abi_trio.txn_abi, &wallet,
                                            vec![action, action_abi],
                                            &gi.head_block_id, exp_time).map_err(|e| {
             abi_trio.destroy();
@@ -488,7 +486,8 @@ mod test {
             })?;
         trio.destroy();
 
-        let get_abi = eos.get_abi(name)?;
+        // if the abi is written incorrectly this will cause a server error
+        let _get_abi = eos.get_abi(name)?;
 
         Ok(())
     }

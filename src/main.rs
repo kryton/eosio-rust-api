@@ -11,7 +11,7 @@ mod errors ;
 
 use crate::errors::{Result};
 use std::env;
-use eosio_api::json_rpc::EOSRPC;
+use eosio_client_api::json_rpc::EOSRPC;
 
 fn run() -> Result<bool> {
 //    use std::fs::File;
@@ -31,7 +31,7 @@ fn run() -> Result<bool> {
 }
 
 fn main() {
-    eprintln!("This is non-operational. need eosio-api to be semi-operational first");
+    eprintln!("This is non-operational. need eosio-client-api to be semi-operational first");
     if let Err(ref e) = run() {
         println!("error: {}", e);
 

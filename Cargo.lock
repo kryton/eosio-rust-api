@@ -282,14 +282,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "eosio-api"
+name = "eosio-client"
+version = "0.1.0"
+dependencies = [
+ "eosio-client-api",
+ "eosio-client-keys",
+ "error-chain",
+]
+
+[[package]]
+name = "eosio-client-api"
 version = "0.1.0"
 dependencies = [
  "base64 0.12.1",
  "base64-serde",
  "bs58",
  "chrono",
- "eosio-keys",
+ "eosio-client-keys",
  "error-chain",
  "lazy_static",
  "libabieos-sys",
@@ -301,16 +310,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "eosio-client"
-version = "0.1.0"
-dependencies = [
- "eosio-api",
- "eosio-keys",
- "error-chain",
-]
-
-[[package]]
-name = "eosio-keys"
+name = "eosio-client-keys"
 version = "0.1.0"
 dependencies = [
  "bs58",

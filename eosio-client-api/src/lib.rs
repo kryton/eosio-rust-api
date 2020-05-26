@@ -13,7 +13,7 @@ use rust_embed::RustEmbed;
 extern crate base64;
 extern crate bs58;
 extern crate ripemd160;
-extern crate eosio_keys;
+extern crate eosio_client_keys;
 mod numeric;
 pub mod api_types;
 pub mod json_rpc;

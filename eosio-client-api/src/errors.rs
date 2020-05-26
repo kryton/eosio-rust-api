@@ -26,7 +26,7 @@ error_chain!{
         foreign_links {
             ReqwestError(::reqwest::Error);
             SerdeJsonError(serde_json::Error);
-            EOSIOKeysError(eosio_keys::errors::Error);
+            EOSIOKeysError(eosio_client_keys::errors::Error);
             IOError(std::io::Error);
             UTF8Error(std::string::FromUtf8Error);
             LibABIEOS(libabieos_sys::errors::Error);

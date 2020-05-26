@@ -2,10 +2,9 @@ use chrono::{DateTime, Utc, Duration};
 use serde::{Serialize, Deserialize};
 use crate::errors::Result;
 use libabieos_sys::ABIEOS;
-use std::any::Any;
-
+/*
 pub(crate) mod eosio_action_trace {
-    use serde::{self, Deserialize, Serializer, Deserializer};
+    use serde::{self, Serializer, Deserializer};
     use serde_json:: Value;
     use std::collections::HashMap;
 
@@ -32,7 +31,7 @@ pub(crate) mod eosio_action_trace {
         Ok(m)
     }
 }
-
+*/
 pub(crate) mod eosio_datetime_format {
     use chrono::{DateTime, Utc, TimeZone, NaiveDateTime};
     use serde::{self, Deserialize, Serializer, Deserializer};

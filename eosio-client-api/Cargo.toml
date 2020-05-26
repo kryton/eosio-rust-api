@@ -1,5 +1,5 @@
 [package]
-name = "eosio-api"
+name = "eosio-client-api"
 version = "0.1.0"
 authors = ["Ian Holsman <ian@holsman.com.au>"]
 edition = "2018"
@@ -9,7 +9,7 @@ description="EOSIO API to communicate to EOSIO nodeos software"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-eosio-keys = { path = "../eosio-keys"}
+eosio-client-keys = { path = "../eosio-client-keys"}
 libabieos-sys = { path = "../libabieos-sys"}
 lazy_static = "1.4.0"
 bs58 = "0.3.1"

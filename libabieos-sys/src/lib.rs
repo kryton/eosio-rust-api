@@ -2,7 +2,7 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-use std::ptr::null;
+//use std::ptr::null;
 use std::ffi::{CStr, CString};
 
 include!("./bindings.rs");
@@ -10,9 +10,8 @@ pub mod errors;
 
 //#[macro_use]
 extern crate error_chain;
-//#[macro_use] extern crate lazy_static;
 
-use crate::errors::{ErrorKind, Result};
+use crate::errors::{ErrorKind, Result, Error};
 use std::os::raw::c_char;
 
 
@@ -37,13 +36,12 @@ impl ABIEOS {
     pub unsafe fn new_with_abi(contract_name: &str, abi: &str) -> Result<ABIEOS> {
         let context: *mut abieos_context = abieos_create();
         let abi_obj = ABIEOS { context };
-        let result = abi_obj.set_abi(contract_name,abi);
-        if result.is_err() {
+        abi_obj.set_abi(contract_name, abi).map_err(|e| {
             abi_obj.destroy();
-            Err(result.unwrap_err())
-        } else {
-            Ok(abi_obj)
-        }
+            Error::with_chain(e, "new_with_abi")
+        })?;
+
+        Ok(abi_obj)
     }
 
     /// # Safety
@@ -79,7 +77,7 @@ impl ABIEOS {
         let typeCS = CString::new(type_str).unwrap();
         let hexCS = CString::new(hex).unwrap();
         let json_p = abieos_hex_to_json(self.context, name, typeCS.as_ptr(), hexCS.as_ptr() as *const i8);
-        if json_p == null() {
+        if json_p.is_null() {
             self.abieos_error()?;
             Err("FAIL".into()) // not reached
         } else {
@@ -94,7 +92,7 @@ impl ABIEOS {
         let typeCS = CString::new(type_str).unwrap();
        // let hexCS = CString::new(hex).unwrap();
         let json_p = abieos_bin_to_json(self.context, name, typeCS.as_ptr(), hex.as_ptr() as *const i8, hex.len() as u64);
-        if json_p == null() {
+        if json_p.is_null() {
             self.abieos_error()?;
             Err("FAIL".into()) // not reached
         } else {
@@ -128,7 +126,7 @@ impl ABIEOS {
     /// make sure you destroy this after use
     unsafe fn abieos_error(&self) -> Result<String> {
         let err_raw: *const c_char = abieos_get_error(self.context);
-        if err_raw != null() {
+        if !err_raw.is_null() {
             let err_s = CStr::from_ptr(err_raw).to_str()?;
             Err(ErrorKind::ABIEOS(String::from(err_s)).into())
         } else {

@@ -2,11 +2,10 @@ use crate::errors::{Result, ErrorKind};
 
 pub const NAME_LENGTH: usize = 13;
 
-//pub type ABIName = u64;
-
 pub struct ABIName {
     pub value:u64
 }
+
 impl ABIName {
     pub fn from_str(string: &str) -> Result<ABIName> {
         let mut value: u64 = 0;
@@ -31,7 +30,9 @@ impl ABIName {
     }
 
     pub fn to_str(&self) -> Result<String> {
-        const CHARMAP: [char; 32] = ['.', '1', '2', '3', '4', '5', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+        const CHARMAP: [char; 32] = ['.', '1', '2', '3', '4', '5', 'a', 'b', 'c', 'd',
+                                     'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+                                     'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
 
         let mut result: Vec<u8> = Vec::with_capacity(13);
         for _x in 0..=12 {

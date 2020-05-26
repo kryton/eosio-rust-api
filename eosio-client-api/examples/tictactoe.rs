@@ -10,7 +10,7 @@ extern crate error_chain;
 mod errors {
     error_chain! {
     foreign_links {
-            EOSIOAPI(eosio_api::errors::Error);
+            EOSIOAPI(eosio_client_api::errors::Error);
             LIBEOSIOAPI(libabieos_sys::errors::Error);
             STDIO(std::io::Error);
         }
@@ -19,10 +19,10 @@ mod errors {
 
 use crate::errors::{Result, Error};
 use std::{env, fs};
-use eosio_api::json_rpc::{EOSRPC, create_setcode_action, create_setabi_action, AbiTrio};
-use eosio_api::wallet_types::{Wallet, get_wallet_pass};
-use eosio_api::api_types::{ActionIn, GetInfo, vec_u8_to_hex, AuthorizationIn};
-use eosio_api::wasm::WASM;
+use eosio_client_api::json_rpc::{EOSRPC, create_setcode_action, create_setabi_action, AbiTrio};
+use eosio_client_api::wallet_types::{Wallet, get_wallet_pass};
+use eosio_client_api::api_types::{ActionIn, GetInfo, vec_u8_to_hex, AuthorizationIn};
+use eosio_client_api::wasm::WASM;
 use libabieos_sys::ABIEOS;
 use chrono::Duration;
 //use serde_json::Value;

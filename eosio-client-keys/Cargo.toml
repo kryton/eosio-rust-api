@@ -5,6 +5,8 @@ authors = ["Ian Holsman <ian@holsman.com.au>"]
 edition = "2018"
 license = "Apache-2.0"
 description="EOSIO Key/Signature handling"
+readme = "README.md"
+homepage = "https://github.com/kryton/eosio-rust-api/tree/master/eosio-client-keys"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

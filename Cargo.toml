@@ -5,6 +5,8 @@ authors = ["Ian Holsman <ian@holsman.com.au>"]
 edition = "2018"
 license = "Apache-2.0"
 description="sample client utilizing EOSIO API"
+readme = "README.md"
+homepage="https://github.com/kryton/eosio-rust-api/"
 
 [workspace]
 members = [
@@ -17,6 +19,6 @@ exclude = [
 ]
 
 [dependencies]
-eosio-client-api= { path = "eosio-client-api"}
+eosio-client-api= {path = "eosio-client-api"}
 eosio-client-keys = {path = "eosio-client-keys"}
 error-chain = "0.12.2"

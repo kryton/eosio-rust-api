@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["Ian Holsman <ian@holsman.com.au>"]
 edition = "2018"
 build="build.rs"
+readme="README.md"
+homepage = "https://github.com/kryton/eosio-rust-api/tree/master/libabieos-sys"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 # add
 # +install(TARGETS abieos DESTINATION .)

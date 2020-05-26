@@ -9,6 +9,8 @@ homepage = "https://github.com/kryton/eosio-rust-api/tree/master/libabieos-sys"
 repository = "https://github.com/kryton/eosio-rust-api/"
 keywords = ["eosio", "blockchain"]
 categories = ["api-bindings"]
+license = "Apache-2.0"
+description="EOSIO abieos rust bindings"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 # add

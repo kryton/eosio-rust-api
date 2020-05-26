@@ -1,6 +1,6 @@
 [package]
 name = "libabieos-sys"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Ian Holsman <ian@holsman.com.au>"]
 edition = "2018"
 build="build.rs"
@@ -11,7 +11,7 @@ keywords = ["eosio", "blockchain"]
 categories = ["api-bindings"]
 license = "Apache-2.0"
 description="EOSIO abieos rust bindings"
-
+documentation="https://docs.rs/libabieos-sys/"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 # add
 # +install(TARGETS abieos DESTINATION .)
@@ -28,6 +28,7 @@ description="EOSIO abieos rust bindings"
 error-chain = "0.12.2"
 regex="1.3"
 lazy_static = "1.4.0"
+rust-embed = "5.5.1"
 
 [build-dependencies]
 cmake = "0.1"

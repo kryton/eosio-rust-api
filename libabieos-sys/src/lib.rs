@@ -4,6 +4,13 @@
 
 //use std::ptr::null;
 use std::ffi::{CStr, CString};
+use rust_embed::RustEmbed;
+
+
+/// embed main ABI files into client.
+#[derive(RustEmbed)]
+#[folder = "resources/"]
+pub struct AbiFiles;
 
 include!("./bindings.rs");
 pub mod errors;

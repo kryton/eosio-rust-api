@@ -8,7 +8,6 @@ extern crate serde_json;
 extern crate error_chain;
 #[macro_use] extern crate lazy_static;
 
-use rust_embed::RustEmbed;
 
 extern crate base64;
 extern crate bs58;
@@ -22,10 +21,6 @@ mod abi;
 //mod serialize;
 pub mod wallet_types;
 pub mod errors;
-
-#[derive(RustEmbed)]
-#[folder = "resources/"]
-pub struct AbiFiles;
 
 #[cfg(test)]
 mod tests {

@@ -7,11 +7,10 @@ use crate::api_types::*;
 use crate::wallet_types::Wallet;
 use eosio_client_keys::EOSPublicKey;
 use crate::wasm::WASM;
-use libabieos_sys::ABIEOS;
+use libabieos_sys::{ABIEOS, AbiFiles};
 //use rust_embed::RustEmbed;
 
 use chrono::{Utc, DateTime};
-use crate::AbiFiles;
 
 pub const ERROR_TXN_SET_EXACT_CODE: usize = 3_160_008;
 
@@ -495,7 +494,7 @@ mod test {
     #[test]
     fn block_getblock() -> Result<()> {
         let eos = EOSRPC::blocking(String::from(TEST_HOST))?;
-        let block = eos.get_block_num(144198)?;
+        let block = eos.get_block_num(1)?;
         let block2 = eos.get_block_id(&block.id)?;
         assert_eq!(block.block_num, block2.block_num);
         Ok(())

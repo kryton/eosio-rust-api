@@ -14,8 +14,8 @@ categories = ["api-bindings"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-eosio-client-keys = { path = "../eosio-client-keys"}
-libabieos-sys = { path = "../libabieos-sys"}
+eosio-client-keys = { path = "../eosio-client-keys", version="0.1.0"}
+libabieos-sys = { path = "../libabieos-sys" , version="0.1.0"}
 lazy_static = "1.4.0"
 bs58 = "0.3.1"
 base64 = "0.12.1"

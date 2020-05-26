@@ -22,6 +22,6 @@ exclude = [
 ]
 
 [dependencies]
-eosio-client-api= {path = "eosio-client-api"}
-eosio-client-keys = {path = "eosio-client-keys"}
+eosio-client-api= {path = "eosio-client-api", version="0.1.0"}
+eosio-client-keys = {path = "eosio-client-keys", version="0.1.0"}
 error-chain = "0.12.2"

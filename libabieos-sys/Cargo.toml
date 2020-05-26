@@ -6,6 +6,7 @@ edition = "2018"
 build="build.rs"
 readme="README.md"
 homepage = "https://github.com/kryton/eosio-rust-api/tree/master/libabieos-sys"
+repository = "https://github.com/kryton/eosio-rust-api/"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 # add

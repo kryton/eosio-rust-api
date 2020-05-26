@@ -7,7 +7,7 @@ license = "Apache-2.0"
 description="sample client utilizing EOSIO API"
 readme = "README.md"
 homepage="https://github.com/kryton/eosio-rust-api/"
-
+repository = "https://github.com/kryton/eosio-rust-api/"
 [workspace]
 members = [
     "eosio-client-api",

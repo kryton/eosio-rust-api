@@ -71,17 +71,15 @@ pub fn create_game_action(abieos: &ABIEOS, main: &str, host: &str, challenger: &
         "challenger": String::from(challenger),
         "host":String::from(host),
     }).to_string();
-    unsafe {
-        let hex = abieos.json_to_hex(main, "create", &js)?;
-        let data = String::from(hex);
+    let hex = abieos.json_to_hex(main, "create", &js)?;
+    let data = String::from(hex);
 
-        Ok(ActionIn {
-            name: "create".to_string(),
-            account: main.to_string(),
-            authorization: v_auth,
-            data,
-        })
-    }
+    Ok(ActionIn {
+        name: "create".to_string(),
+        account: main.to_string(),
+        authorization: v_auth,
+        data,
+    })
 }
 
 pub fn close_game_action(abieos: &ABIEOS, main: &str, host: &str, challenger: &str) -> Result<ActionIn> {
@@ -91,17 +89,16 @@ pub fn close_game_action(abieos: &ABIEOS, main: &str, host: &str, challenger: &s
         "challenger": String::from(challenger),
         "host":String::from(host),
     }).to_string();
-    unsafe {
-        let hex = abieos.json_to_hex(main, "create", &js)?;
-        let data = String::from(hex);
 
-        Ok(ActionIn {
-            name: "close".to_string(),
-            account: main.to_string(),
-            authorization: v_auth,
-            data,
-        })
-    }
+    let hex = abieos.json_to_hex(main, "create", &js)?;
+    let data = String::from(hex);
+
+    Ok(ActionIn {
+        name: "close".to_string(),
+        account: main.to_string(),
+        authorization: v_auth,
+        data,
+    })
 }
 
 pub fn move_game_action(abieos: &ABIEOS, main: &str, host: &str, challenger: &str,
@@ -117,17 +114,16 @@ pub fn move_game_action(abieos: &ABIEOS, main: &str, host: &str, challenger: &st
         "column":col
     }).to_string();
 
-    unsafe {
-        let hex = abieos.json_to_hex(main, "move", &js)?;
-        let data = String::from(hex);
 
-        Ok(ActionIn {
-            name: "move".to_string(),
-            account: main.to_string(),
-            authorization: v_auth,
-            data,
-        })
-    }
+    let hex = abieos.json_to_hex(main, "move", &js)?;
+    let data = String::from(hex);
+
+    Ok(ActionIn {
+        name: "move".to_string(),
+        account: main.to_string(),
+        authorization: v_auth,
+        data,
+    })
 }
 
 
@@ -192,20 +188,17 @@ fn move_game(wallet: &Wallet, eos: &EOSRPC, game_acct: &str,
 fn get_board(eos: &EOSRPC, game_acct: &str) -> Result<()> {
     let abi_trio: AbiTrio = AbiTrio::create("eosio", game_acct, eos)?;
 
-    let tr = eos.get_table_rows(&game_acct,"tictactoe",
-                                "games","",
-                                "","",10,
-                                "","","dec",false,true)?;
+    let tr = eos.get_table_rows(&game_acct, "tictactoe",
+                                "games", "",
+                                "", "", 10,
+                                "", "", "dec", false, true)?;
     for row in tr.rows {
         let data = row.data;
-        unsafe {
-            let str = abi_trio.acct_abi.hex_to_json(&game_acct,"game",data.as_bytes());
-            println!("{:?}",str);
 
-        }
+        let str = abi_trio.acct_abi.hex_to_json(&game_acct, "game", data.as_bytes());
+        println!("{:?}", str);
     }
     Ok(())
-
 }
 
 fn get_args() -> Result<(String, String, String, String, String)> {

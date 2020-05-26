@@ -127,19 +127,16 @@ impl EOSRPC {
     pub fn get_abi_from_account(&self, abieos_eosio: &ABIEOS, account_name: &str) -> Result<ABIEOS> {
         let rawabi = self.get_raw_abi(account_name)?;
         let account_abi = rawabi.decode_abi()?;
-        unsafe {
-            let account_abi_json = abieos_eosio.bin_to_json("eosio", "abi_def", &account_abi)?;
-            Ok(ABIEOS::new_with_abi(account_name, &account_abi_json)?)
-        }
+
+        let account_abi_json = abieos_eosio.bin_to_json("eosio", "abi_def", &account_abi)?;
+        Ok(ABIEOS::new_with_abi(account_name, &account_abi_json)?)
     }
 
     pub fn push_transaction(&self, abieos: &ABIEOS, wallet: &Wallet, actions: Vec<ActionIn>, ref_block: &str, exp_time: DateTime<Utc>) -> Result<TransactionResponse> {
         let ti = TransactionIn::simple(actions, ref_block, exp_time)?;
 
         let trx_json = serde_json::to_string(&ti)?;
-        let trx = unsafe {
-            abieos.json_to_hex("eosio", "transaction", &trx_json)
-        }?;
+        let trx = abieos.json_to_hex("eosio", "transaction", &trx_json)?;
 
         let pubkeys = wallet.keys()?;
         let required_keys = self.get_required_keys(&ti, pubkeys)?;
@@ -246,36 +243,30 @@ pub struct AbiTrio {
 
 impl AbiTrio {
     pub fn create(sys_name: &str, sys_acct_name: &str, eos: &EOSRPC) -> Result<AbiTrio> {
-        unsafe {
-            let sys_abi = ABIEOS::new_with_abi(sys_name, &eos.abi_abi_js)?;
-            let txn_abi: ABIEOS = ABIEOS::new_with_abi(sys_name, &eos.transaction_abi_js).map_err(|e| {
-                sys_abi.destroy();
-                Error::with_chain(e, "AbiTrio_txn")
-            })?;
-            let acct_abi: ABIEOS = eos.get_abi_from_account(&sys_abi, sys_acct_name).map_err(|e| {
-                sys_abi.destroy();
-                txn_abi.destroy();
-                Error::with_chain(e, "AbiTrio_act")
-            })?;
+        let sys_abi = ABIEOS::new_with_abi(sys_name, &eos.abi_abi_js)?;
+        let txn_abi: ABIEOS = ABIEOS::new_with_abi(sys_name, &eos.transaction_abi_js).map_err(|e| {
+            sys_abi.destroy();
+            Error::with_chain(e, "AbiTrio_txn")
+        })?;
+        let acct_abi: ABIEOS = eos.get_abi_from_account(&sys_abi, sys_acct_name).map_err(|e| {
+            sys_abi.destroy();
+            txn_abi.destroy();
+            Error::with_chain(e, "AbiTrio_act")
+        })?;
 
-            Ok(AbiTrio { sys_abi, txn_abi, acct_abi })
-        }
+        Ok(AbiTrio { sys_abi, txn_abi, acct_abi })
     }
     pub fn destroy(&self) {
-        unsafe {
-            self.acct_abi.destroy();
-            self.txn_abi.destroy();
-            self.sys_abi.destroy()
-        }
+        self.acct_abi.destroy();
+        self.txn_abi.destroy();
+        self.sys_abi.destroy()
     }
 }
 
 pub fn create_setabi_action(sys_abieos: &ABIEOS, acct_abieos: &ABIEOS, name: &str, abi: &str) -> Result<ActionIn> {
     let auth = AuthorizationIn { permission: "active".to_string(), actor: String::from(name) };
     let v_auth: Vec<AuthorizationIn> = vec![auth];
-    let abi_hex = unsafe {
-        sys_abieos.json_to_hex("eosio", "abi_def", abi)
-    }?;
+    let abi_hex = sys_abieos.json_to_hex("eosio", "abi_def", abi)?;
     // let abi_s = String::from(abi);
     let data = ActionSetData { account: String::from(name), abi: String::from(abi_hex) }.to_hex(acct_abieos)?;
 

@@ -513,15 +513,12 @@ pub struct ActionSetcodeData {
 
 impl ActionSetcodeData {
     pub fn to_hex(&self, abieos: &ABIEOS) -> Result<String> {
-        // let v = serde_json::json![self];
-        // let json = v.to_string();
         // abieos NEEDS the json to be in a specific order serde_json doesn't do that
         let json = format!("{{ \"account\":\"{}\", \"vmtype\":{},\"vmversion\":{},\"code\":\"{}\" }}",
                            self.account, self.vmtype, self.vmversion, self.code);
-        unsafe {
-            let hex = abieos.json_to_hex("eosio", "setcode", &json)?;
-            Ok(String::from(hex))
-        }
+
+        let hex = abieos.json_to_hex("eosio", "setcode", &json)?;
+        Ok(String::from(hex))
     }
 }
 
@@ -533,16 +530,10 @@ pub struct ActionSetData {
 
 impl ActionSetData {
     pub fn to_hex(&self, abieos: &ABIEOS) -> Result<String> {
-        //let v = serde_json::json![self];
-        //let json = v.to_string();
-        // let abi_b64 = base64::encode(&self.abi);
-        //let abi_hex = vec_u8_to_hex(&abi_b64.into_bytes())?;
-
         let json = format!("{{ \"account\":\"{}\", \"abi\":\"{}\"}}", self.account, self.abi);
-        unsafe {
-            let hex = abieos.json_to_hex("eosio", "setabi", &json);
-            Ok(String::from(hex?))
-        }
+
+        let hex = abieos.json_to_hex("eosio", "setabi", &json);
+        Ok(String::from(hex?))
     }
 }
 

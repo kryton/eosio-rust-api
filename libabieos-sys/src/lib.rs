@@ -20,6 +20,7 @@ extern crate error_chain;
 
 use crate::errors::{ErrorKind, Result, Error};
 use std::os::raw::c_char;
+use std::ptr::slice_from_raw_parts;
 
 
 type ABIName = u64;
@@ -124,26 +125,56 @@ impl ABIEOS {
             }
         }
     }
-
-    pub fn json_to_hex(&self, contract_name: &str, type_str: &str, json: &str) -> Result<&str> {
+    fn json_to_xx(&self, contract_name: &str, type_str: &str, json: &str) -> Result<i32> {
         let name = self.str_to_name(contract_name)?;
         let typeCS = CString::new(type_str).unwrap();
         let jsonCS = CString::new(json).unwrap();
         let result = unsafe {
             abieos_json_to_bin_reorderable(self.context, name, typeCS.as_ptr(), jsonCS.as_ptr() as *const i8)
         };
+        Ok(result)
 
-        if result == 0 {
-            self.abieos_error()?;
-            Err("FAIL".into()) // not reached
-        } else {
-            // let _bin_size = abieos_get_bin_size(self.context);
-            unsafe {
-                let hex_p = abieos_get_bin_hex(self.context);
-                let s = CStr::from_ptr(hex_p);
-                Ok(s.to_str()?)
+    }
+    pub fn json_to_hex(&self, contract_name: &str, type_str: &str, json: &str) -> Result<&str> {
+        match self.json_to_xx(contract_name, type_str, json) {
+            Ok(0) => {
+                self.abieos_error().map_err(|e|  Error::with_chain(e, "json_to_hex"))?;
+                Err("FAIL".into()) // not reached
+            },
+            Ok(_) => {
+                unsafe {
+                    let hex_p = abieos_get_bin_hex(self.context);
+                    let s = CStr::from_ptr(hex_p);
+                    Ok(s.to_str()?)
+                }
+            },
+            Err(e) =>{
+                Err(Error::with_chain(e, "json_to_hex"))
             }
         }
+    }
+
+    pub fn json_to_bin(&self, contract_name: &str, type_str: &str, json: &str) -> Result<Vec<u8>> {
+        match self.json_to_xx(contract_name, type_str, json) {
+            Ok(0) => {
+                self.abieos_error()?;
+                Err("FAIL".into()) // not reached
+            },
+            Ok(_) => {
+                unsafe {
+                    let bin_size:usize = abieos_get_bin_size(self.context) as usize;
+                    let bin:*const ::std::os::raw::c_char = abieos_get_bin_data(self.context);
+
+                    let v:&[u8] = std::slice::from_raw_parts(bin as *const u8, bin_size );
+                    let ve:Vec<u8> = v.to_vec();
+                    Ok(ve)
+                }
+            },
+            Err(e) =>{
+                Err(Error::with_chain(e, "json_to_hex"))
+            }
+        }
+
     }
 
     fn abieos_error(&self) -> Result<String> {
@@ -280,6 +311,34 @@ mod test {
     }
 
     #[test]
+    pub fn test_ttt_abi_bin() -> Result<()> {
+        let test_abi = fs::read_to_string("test/good-2.abi").unwrap();
+        let abi = fs::read_to_string("abi.abi.json").unwrap();
+
+        let abieos: ABIEOS = ABIEOS::new_with_abi("eosio", &abi)?;
+        let hex_out = abieos.json_to_hex("eosio", "abi_def", &test_abi);
+        let bin_out = abieos.json_to_bin("eosio", "abi_def", &test_abi);
+        abieos.destroy();
+        let hex = hex_out?.to_string();
+        let bin = bin_out?;
+        let mut bin_h : String = String::with_capacity(bin.len()*2);
+        for u in &bin {
+            let hex_bit = char_to_hex(u)?.into_bytes();
+            bin_h.push(char::from(hex_bit[0]));
+            bin_h.push(char::from(hex_bit[1]));
+        }
+        assert_eq!(hex.to_ascii_lowercase(),bin_h.to_ascii_lowercase());
+        let abieos: ABIEOS = ABIEOS::new_with_abi("eosio", &abi)?;
+        let _json_out = abieos.bin_to_json("eosio","abi_def",&bin).map_err(|e| {
+            abieos.destroy();
+            Error::with_chain(e, "parsing shipper abi")
+        })?;
+        //assert_eq!(test_abi,json_out);
+
+        Ok(())
+    }
+
+    #[test]
     pub fn test_from_example_2j() -> Result<()> {
         let abi = fs::read_to_string("transaction.abi.json").unwrap();
 
@@ -295,20 +354,20 @@ mod test {
         Ok(())
     }
 
-    fn _char_to_hex(c: &u8) -> Result<String> {
+    fn char_to_hex(c: &u8) -> Result<String> {
         let mut r: [u8; 2] = [0; 2];
         let b1_1 = c & 0xf0;
         let b1 = b1_1.checked_shr(4).unwrap_or(0);
-        if b1 > 10 {
-            r[0] = b1 - 10 + 'a' as u8;
+        if b1 >= 10 {
+            r[0] = b1 - 10 + b'a';
         } else {
-            r[0] = b1 + '0' as u8;
+            r[0] = b1 + b'0';
         }
         let b1 = c & 0x0f;
-        if b1 > 10 {
-            r[1] = b1 - 10 + 'a' as u8;
+        if b1 >= 10 {
+            r[1] = b1 - 10 + b'a';
         } else {
-            r[1] = b1 + '0' as u8;
+            r[1] = b1 + b'0' ;
         }
         Ok(String::from_utf8(r.to_vec())?)
     }

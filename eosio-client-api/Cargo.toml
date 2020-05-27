@@ -15,7 +15,7 @@ categories = ["api-bindings"]
 
 [dependencies]
 eosio-client-keys = { path = "../eosio-client-keys", version="0.1.0"}
-libabieos-sys = { path = "../libabieos-sys" , version="0.2.1"}
+libabieos-sys = { path = "../libabieos-sys" , version="0.2"}
 lazy_static = "1.4.0"
 bs58 = "0.3.1"
 base64 = "0.12.1"

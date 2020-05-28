@@ -5,19 +5,18 @@
 // `Cargo.toml`!
 // #[macro_use]
 extern crate error_chain;
-mod errors ;
+mod errors;
 //use crate::errors::{ErrorKind, Result};
 
-
-use crate::errors::{Result};
-use std::env;
+use crate::errors::Result;
 use eosio_client_api::json_rpc::EOSRPC;
+use std::env;
 
 fn run() -> Result<bool> {
-//    use std::fs::File;
+    //    use std::fs::File;
     let args: Vec<String> = env::args().collect();
     let host = {
-        if args.len() >1 {
+        if args.len() > 1 {
             &args[1]
         } else {
             "https://api.testnet.eos.io"
@@ -25,7 +24,7 @@ fn run() -> Result<bool> {
     };
     let eos = EOSRPC::blocking(String::from(host))?;
     let gi = eos.get_info()?;
-    eprintln!("{:#?}",gi);
+    eprintln!("{:#?}", gi);
 
     Ok(true)
 }

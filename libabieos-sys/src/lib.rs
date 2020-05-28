@@ -3,9 +3,8 @@
 #![allow(non_snake_case)]
 
 //use std::ptr::null;
-use std::ffi::{CStr, CString};
 use rust_embed::RustEmbed;
-
+use std::ffi::{CStr, CString};
 
 /// embed main ABI files into client.
 #[derive(RustEmbed)]
@@ -18,13 +17,13 @@ pub mod errors;
 //#[macro_use]
 extern crate error_chain;
 
-use crate::errors::{ErrorKind, Result, Error};
+use crate::errors::{Error, ErrorKind, Result};
 use std::os::raw::c_char;
 
 type ABIName = u64;
 
 pub struct ABIEOS {
-    context: *mut abieos_context
+    context: *mut abieos_context,
 }
 
 impl ABIEOS {
@@ -64,13 +63,10 @@ impl ABIEOS {
         //  self.context = null();
     }
 
-
     pub fn set_abi(&self, contract_name: &str, abi: &str) -> Result<bool> {
         let name = self.str_to_name(contract_name)?;
         let abi_cs = CString::new(abi)?;
-        let result = unsafe {
-            abieos_set_abi(self.context, name, abi_cs.as_ptr() as *const i8)
-        };
+        let result = unsafe { abieos_set_abi(self.context, name, abi_cs.as_ptr() as *const i8) };
         if result == 0 {
             self.abieos_error()?;
         }
@@ -80,9 +76,7 @@ impl ABIEOS {
 
     pub fn str_to_name(&self, str_name: &str) -> Result<ABIName> {
         let cs = CString::new(str_name)?;
-        let result = unsafe {
-            abieos_string_to_name(self.context, cs.as_ptr() as *const i8)
-        };
+        let result = unsafe { abieos_string_to_name(self.context, cs.as_ptr() as *const i8) };
         Ok(result)
     }
 
@@ -91,26 +85,35 @@ impl ABIEOS {
         let typeCS = CString::new(type_str).unwrap();
         let hexCS = CString::new(hex).unwrap();
         let json_p = unsafe {
-            abieos_hex_to_json(self.context, name, typeCS.as_ptr(), hexCS.as_ptr() as *const i8)
+            abieos_hex_to_json(
+                self.context,
+                name,
+                typeCS.as_ptr(),
+                hexCS.as_ptr() as *const i8,
+            )
         };
 
         if json_p.is_null() {
             self.abieos_error()?;
             Err("FAIL".into()) // not reached
         } else {
-            let json = unsafe {
-                ABIEOS::fix_json(CStr::from_ptr(json_p).to_str()?)?
-            };
+            let json = unsafe { ABIEOS::fix_json(CStr::from_ptr(json_p).to_str()?)? };
             Ok(json)
         }
     }
 
-    pub  fn bin_to_json(&self, contract_name: &str, type_str: &str, hex: &[u8]) -> Result<String> {
+    pub fn bin_to_json(&self, contract_name: &str, type_str: &str, hex: &[u8]) -> Result<String> {
         let name = self.str_to_name(contract_name)?;
         let typeCS = CString::new(type_str).unwrap();
         // let hexCS = CString::new(hex).unwrap();
         let json_p = unsafe {
-            abieos_bin_to_json(self.context, name, typeCS.as_ptr(), hex.as_ptr() as *const i8, hex.len() as u64)
+            abieos_bin_to_json(
+                self.context,
+                name,
+                typeCS.as_ptr(),
+                hex.as_ptr() as *const i8,
+                hex.len() as u64,
+            )
         };
 
         if json_p.is_null() {
@@ -128,10 +131,14 @@ impl ABIEOS {
         let typeCS = CString::new(type_str).unwrap();
         let jsonCS = CString::new(json).unwrap();
         let result = unsafe {
-            abieos_json_to_bin_reorderable(self.context, name, typeCS.as_ptr(), jsonCS.as_ptr() as *const i8)
+            abieos_json_to_bin_reorderable(
+                self.context,
+                name,
+                typeCS.as_ptr(),
+                jsonCS.as_ptr() as *const i8,
+            )
         };
         Ok(result)
-
     }
     ///
     /// Safety
@@ -140,9 +147,10 @@ impl ABIEOS {
     pub fn json_to_hex(&self, contract_name: &str, type_str: &str, json: &str) -> Result<String> {
         match self.json_to_xx(contract_name, type_str, json) {
             Ok(0) => {
-                self.abieos_error().map_err(|e|  Error::with_chain(e, "json_to_hex"))?;
+                self.abieos_error()
+                    .map_err(|e| Error::with_chain(e, "json_to_hex"))?;
                 Err("FAIL".into()) // not reached
-            },
+            }
             Ok(_) => {
                 unsafe {
                     let hex_p = abieos_get_bin_hex(self.context);
@@ -150,10 +158,8 @@ impl ABIEOS {
                     // this should copy the memory over
                     Ok(String::from(s.to_str()?).clone())
                 }
-            },
-            Err(e) =>{
-                Err(Error::with_chain(e, "json_to_hex"))
             }
+            Err(e) => Err(Error::with_chain(e, "json_to_hex")),
         }
     }
 
@@ -166,22 +172,17 @@ impl ABIEOS {
             Ok(0) => {
                 self.abieos_error()?;
                 Err("FAIL".into()) // not reached
-            },
-            Ok(_) => {
-                unsafe {
-                    let bin_size:usize = abieos_get_bin_size(self.context) as usize;
-                    let bin:*const ::std::os::raw::c_char = abieos_get_bin_data(self.context);
-
-                    let v:&[u8] = std::slice::from_raw_parts(bin as *const u8, bin_size );
-                    let ve:Vec<u8> = v.to_vec().clone();
-                    Ok(ve)
-                }
-            },
-            Err(e) =>{
-                Err(Error::with_chain(e, "json_to_hex"))
             }
-        }
+            Ok(_) => unsafe {
+                let bin_size: usize = abieos_get_bin_size(self.context) as usize;
+                let bin: *const ::std::os::raw::c_char = abieos_get_bin_data(self.context);
 
+                let v: &[u8] = std::slice::from_raw_parts(bin as *const u8, bin_size);
+                let ve: Vec<u8> = v.to_vec().clone();
+                Ok(ve)
+            },
+            Err(e) => Err(Error::with_chain(e, "json_to_hex")),
+        }
     }
 
     fn abieos_error(&self) -> Result<String> {
@@ -203,8 +204,7 @@ impl ABIEOS {
         let mut x: String;
         let mut i = 0;
         x = in_str.replacen("\\u000A", "\\n", 999);
-        while x.contains("\\u000A")
-        {
+        while x.contains("\\u000A") {
             x = x.replacen("\\u000A", "\\n", 999);
             i += 1;
             if i > 100 {
@@ -330,15 +330,15 @@ mod test {
         abieos.destroy();
         let hex = hex_out?.to_string();
         let bin = bin_out?;
-        let mut bin_h : String = String::with_capacity(bin.len()*2);
+        let mut bin_h: String = String::with_capacity(bin.len() * 2);
         for u in &bin {
             let hex_bit = char_to_hex(u)?.into_bytes();
             bin_h.push(char::from(hex_bit[0]));
             bin_h.push(char::from(hex_bit[1]));
         }
-        assert_eq!(hex.to_ascii_lowercase(),bin_h.to_ascii_lowercase());
+        assert_eq!(hex.to_ascii_lowercase(), bin_h.to_ascii_lowercase());
         let abieos: ABIEOS = ABIEOS::new_with_abi("eosio", &abi)?;
-        let _json_out = abieos.bin_to_json("eosio","abi_def",&bin).map_err(|e| {
+        let _json_out = abieos.bin_to_json("eosio", "abi_def", &bin).map_err(|e| {
             abieos.destroy();
             Error::with_chain(e, "parsing shipper abi")
         })?;
@@ -376,7 +376,7 @@ mod test {
         if b1 >= 10 {
             r[1] = b1 - 10 + b'a';
         } else {
-            r[1] = b1 + b'0' ;
+            r[1] = b1 + b'0';
         }
         Ok(String::from_utf8(r.to_vec())?)
     }

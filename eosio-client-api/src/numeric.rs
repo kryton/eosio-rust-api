@@ -13,10 +13,8 @@ use ripemd160::{Digest, Ripemd160};
  */
 // copyright defined in eosjs/LICENSE.txt
 
-
 const BASE58CHARS: &str = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 const BASE64CHARS: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
 
 pub fn create_base58_map() -> [i32; 256] {
     let mut base58_mapi: [i32; 256] = [-1; 256];
@@ -51,7 +49,7 @@ pub fn negate(bignum: &[u8]) -> Vec<u8> {
     let mut carry = 1;
     let mut result: Vec<u8> = Vec::with_capacity(bignum.len());
     for part in bignum {
-        let x = !part  + carry;
+        let x = !part + carry;
         result.push(x);
         carry = x.checked_shr(8).unwrap_or(0);
     }
@@ -147,7 +145,7 @@ pub fn binary_to_decimal(bignum: &[u8], min_digits: usize) -> String {
  */
 #[allow(dead_code)]
 pub fn signed_binary_to_decimal(bignum: &[u8], min_digits: usize) -> String {
-     if is_negative(bignum) {
+    if is_negative(bignum) {
         "-".to_owned() + binary_to_decimal(&negate(bignum), min_digits).as_str()
     } else {
         binary_to_decimal(&bignum, min_digits)
@@ -161,7 +159,7 @@ pub fn signed_binary_to_decimal(bignum: &[u8], min_digits: usize) -> String {
 #[allow(dead_code)]
 pub fn base58_to_binary(_size: usize, s: &str) -> Vec<u8> {
     match bs58::decode(s).into_vec() {
-        Ok(vec) =>  vec,
+        Ok(vec) => vec,
         Err(err) => panic!("{}", err),
     }
 }
@@ -177,7 +175,7 @@ pub fn binary_to_base58(bignum: &[u8], _min_digits: usize) -> String {
 #[allow(dead_code)]
 pub fn base64_to_binary(s: &str) -> Vec<u8> {
     match base64::decode(s) {
-        Ok(vec) =>  vec,
+        Ok(vec) => vec,
         Err(err) => panic!("{}", err),
     }
 }
@@ -546,41 +544,41 @@ mod tests {
 
      */
     /*
-        #[test]
-        fn string_to_publickey_test() {
-            let pubkey_k1 = "PUB_K1_859gxfnXyUriMgUeThh1fWv3oqcpLFyHa3TfFYC4PK2Ht7beeX";
-            let pubkey_r1 = "PUB_R1_6FPFZqw5ahYrR9jD96yDbbDNTdKtNqRbze6oTDLntrsANgQKZu";
-            let pubkey_eos = "EOS67SCWnz6trqFPCtmxfjYEPSsT9JKRn4zhow8X3VTtgaEzNMULF";
-            let pubkey_invalid = "PUB_WW_67SCWnz6trqFPCtmxfjYEPSsT9JKRn4zhow8X3VTtgaEzNMULF";
-            let pubkey_invalid2 = "EKS67SCWnz6trqFPCtmxfjYEPSsT9JKRn4zhow8X3VTtgaEzNMULF";
-            /*
-               "PUB_R1_8S4TodyXa9KASMAJgkLbstFYzAWHNjNJPhpHuqqHF9Af8ekV7i",
-               "PVT_R1_2sPCnkH6652KFYQZNWuQvgfTTHvqjrhV6pQ8tcVQGqBNsopKZp"
-                "EOS67SCWnz6trqFPCtmxfjYEPSsT9JKRn4zhow8X3VTtgaEzNMULF",
-               "5JaKaxySEyjBFGT9K9cYKSFhfojn1RfPcresqRVbmtxnQt1w3qW"
-            */
+       #[test]
+       fn string_to_publickey_test() {
+           let pubkey_k1 = "PUB_K1_859gxfnXyUriMgUeThh1fWv3oqcpLFyHa3TfFYC4PK2Ht7beeX";
+           let pubkey_r1 = "PUB_R1_6FPFZqw5ahYrR9jD96yDbbDNTdKtNqRbze6oTDLntrsANgQKZu";
+           let pubkey_eos = "EOS67SCWnz6trqFPCtmxfjYEPSsT9JKRn4zhow8X3VTtgaEzNMULF";
+           let pubkey_invalid = "PUB_WW_67SCWnz6trqFPCtmxfjYEPSsT9JKRn4zhow8X3VTtgaEzNMULF";
+           let pubkey_invalid2 = "EKS67SCWnz6trqFPCtmxfjYEPSsT9JKRn4zhow8X3VTtgaEzNMULF";
+           /*
+              "PUB_R1_8S4TodyXa9KASMAJgkLbstFYzAWHNjNJPhpHuqqHF9Af8ekV7i",
+              "PVT_R1_2sPCnkH6652KFYQZNWuQvgfTTHvqjrhV6pQ8tcVQGqBNsopKZp"
+               "EOS67SCWnz6trqFPCtmxfjYEPSsT9JKRn4zhow8X3VTtgaEzNMULF",
+              "5JaKaxySEyjBFGT9K9cYKSFhfojn1RfPcresqRVbmtxnQt1w3qW"
+           */
 
-            match string_to_publickey(pubkey_k1) {
-                Err(err) => assert!(false),
-                Ok(key) => assert!(key.key_type == KeyType::K1),
-            }
-            match string_to_publickey(pubkey_r1) {
-                Err(err) => assert!(false),
-                Ok(key) => assert!(key.key_type == KeyType::R1),
-            }
-            match string_to_publickey(pubkey_eos) {
-                Err(err) => assert!(false),
-                Ok(key) => assert!(key.key_type == KeyType::K1),
-            }
-            match string_to_publickey(pubkey_invalid) {
-                Err(err) => assert!(true),
-                Ok(key) => assert!(false),
-            }
-            match string_to_publickey(pubkey_invalid2) {
-                Err(err) => assert!(true),
-                Ok(key) => assert!(false),
-            }
-        }
+           match string_to_publickey(pubkey_k1) {
+               Err(err) => assert!(false),
+               Ok(key) => assert!(key.key_type == KeyType::K1),
+           }
+           match string_to_publickey(pubkey_r1) {
+               Err(err) => assert!(false),
+               Ok(key) => assert!(key.key_type == KeyType::R1),
+           }
+           match string_to_publickey(pubkey_eos) {
+               Err(err) => assert!(false),
+               Ok(key) => assert!(key.key_type == KeyType::K1),
+           }
+           match string_to_publickey(pubkey_invalid) {
+               Err(err) => assert!(true),
+               Ok(key) => assert!(false),
+           }
+           match string_to_publickey(pubkey_invalid2) {
+               Err(err) => assert!(true),
+               Ok(key) => assert!(false),
+           }
+       }
 
-     */
+    */
 }

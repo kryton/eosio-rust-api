@@ -6,21 +6,21 @@ extern crate reqwest;
 extern crate serde_json;
 //#[macro_use]
 extern crate error_chain;
-#[macro_use] extern crate lazy_static;
-
+#[macro_use]
+extern crate lazy_static;
 
 extern crate base64;
 extern crate bs58;
-extern crate ripemd160;
 extern crate eosio_client_keys;
-mod numeric;
+extern crate ripemd160;
+mod abi;
 pub mod api_types;
 pub mod json_rpc;
+mod numeric;
 pub mod wasm;
-mod abi;
 //mod serialize;
-pub mod wallet_types;
 pub mod errors;
+pub mod wallet_types;
 
 #[cfg(test)]
 mod tests {

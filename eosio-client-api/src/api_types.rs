@@ -1,7 +1,7 @@
-use chrono::{DateTime, Utc, Duration};
-use serde::{Serialize, Deserialize};
 use crate::errors::Result;
+use chrono::{DateTime, Duration, Utc};
 use libabieos_sys::ABIEOS;
+use serde::{Deserialize, Serialize};
 /*
 pub(crate) mod eosio_action_trace {
     use serde::{self, Serializer, Deserializer};
@@ -33,8 +33,8 @@ pub(crate) mod eosio_action_trace {
 }
 */
 pub(crate) mod eosio_datetime_format {
-    use chrono::{DateTime, Utc, TimeZone, NaiveDateTime};
-    use serde::{self, Deserialize, Serializer, Deserializer};
+    use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
+    use serde::{self, Deserialize, Deserializer, Serializer};
 
     const FORMAT: &str = "%Y-%m-%dT%H:%M:%S";
 
@@ -45,12 +45,9 @@ pub(crate) mod eosio_datetime_format {
     //        S: Serializer
     //
     // although it may also be generic over the input types T.
-    pub fn serialize<S>(
-        date: &DateTime<Utc>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
     {
         let s = format!("{}", date.format(FORMAT));
         serializer.serialize_str(&s)
@@ -63,11 +60,9 @@ pub(crate) mod eosio_datetime_format {
     //        D: Deserializer<'de>
     //
     // although it may also be generic over the output types T.
-    pub fn deserialize<'de, D>(
-        deserializer: D,
-    ) -> Result<DateTime<Utc>, D::Error>
-        where
-            D: Deserializer<'de>,
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
+    where
+        D: Deserializer<'de>,
     {
         let s: String = String::deserialize(deserializer)?;
         let len = s.len();
@@ -90,13 +85,8 @@ pub(crate) mod eosio_datetime_format {
 }
 
 fn byte_to_char(x: u8) -> char {
-    (if x <= 9 {
-        x + b'0'
-    } else {
-        x - 10 + b'a'
-    }) as char
+    (if x <= 9 { x + b'0' } else { x - 10 + b'a' }) as char
 }
-
 
 pub fn vec_u8_to_hex(out: &[u8]) -> Result<String> {
     let mut str = String::with_capacity(out.len());
@@ -242,7 +232,6 @@ pub struct AbiVariants {
     name: String,
     typea: Vec<String>,
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Abi {
@@ -398,7 +387,11 @@ impl TransactionIn {
             context_free_actions: vec![],
         }
     }
-    pub fn simple(actions: Vec<ActionIn>, ref_block_id: &str, expiration: DateTime<Utc>) -> Result<TransactionIn> {
+    pub fn simple(
+        actions: Vec<ActionIn>,
+        ref_block_id: &str,
+        expiration: DateTime<Utc>,
+    ) -> Result<TransactionIn> {
         let hash = TransactionIn::block_to_hash(ref_block_id)?;
 
         let ref_block_num: u16 = (((hash[0] >> 32) & 0xffff_ffff) as u16).to_le();
@@ -433,10 +426,12 @@ impl TransactionIn {
         if ref_block_id.len() != 64 {
             Err("Invalid ref_block id. expecting len of 64".into())
         } else {
-            let v: Vec<u64> = vec![TransactionIn::hex_to_u64(&ref_block_id[0..16]),
-                                   TransactionIn::hex_to_u64(&ref_block_id[16..32]),
-                                   TransactionIn::hex_to_u64(&ref_block_id[33..48]),
-                                   TransactionIn::hex_to_u64(&ref_block_id[49..64])];
+            let v: Vec<u64> = vec![
+                TransactionIn::hex_to_u64(&ref_block_id[0..16]),
+                TransactionIn::hex_to_u64(&ref_block_id[16..32]),
+                TransactionIn::hex_to_u64(&ref_block_id[33..48]),
+                TransactionIn::hex_to_u64(&ref_block_id[49..64]),
+            ];
             Ok(v)
         }
     }
@@ -510,12 +505,13 @@ pub struct ActionSetcodeData {
     pub(crate) code: String,
 }
 
-
 impl ActionSetcodeData {
     pub fn to_hex(&self, abieos: &ABIEOS) -> Result<String> {
         // abieos NEEDS the json to be in a specific order serde_json doesn't do that
-        let json = format!("{{ \"account\":\"{}\", \"vmtype\":{},\"vmversion\":{},\"code\":\"{}\" }}",
-                           self.account, self.vmtype, self.vmversion, self.code);
+        let json = format!(
+            "{{ \"account\":\"{}\", \"vmtype\":{},\"vmversion\":{},\"code\":\"{}\" }}",
+            self.account, self.vmtype, self.vmversion, self.code
+        );
 
         let hex = abieos.json_to_hex("eosio", "setcode", &json)?;
         Ok(String::from(hex))
@@ -530,7 +526,10 @@ pub struct ActionSetData {
 
 impl ActionSetData {
     pub fn to_hex(&self, abieos: &ABIEOS) -> Result<String> {
-        let json = format!("{{ \"account\":\"{}\", \"abi\":\"{}\"}}", self.account, self.abi);
+        let json = format!(
+            "{{ \"account\":\"{}\", \"abi\":\"{}\"}}",
+            self.account, self.abi
+        );
 
         let hex = abieos.json_to_hex("eosio", "setabi", &json);
         Ok(String::from(hex?))
@@ -665,7 +664,6 @@ pub struct BlockTransactionTrx {
     // context_free_data: Vec<?>
     packed_trx: String,
     pub transaction: BlockTransaction,
-
 }
 
 #[derive(Debug, Deserialize)]
@@ -674,7 +672,6 @@ pub struct BlockTransactions {
     cpu_usage_us: usize,
     net_usage_words: usize,
     pub trx: BlockTransactionTrx,
-
 }
 
 #[derive(Debug, Deserialize)]
@@ -722,7 +719,8 @@ pub struct GetTableByScopeIn {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetTableRowsIn {
-    pub json: bool, /// set this to false if you are using GetTableRow
+    pub json: bool,
+    /// set this to false if you are using GetTableRow
     pub code: String,
     pub scope: String,
     pub table: String,
@@ -738,12 +736,13 @@ pub struct GetTableRowsIn {
 }
 #[derive(Debug, Deserialize)]
 pub struct GetTableRow {
-   pub data:String, /// set to json:false in request, returns abieos-packed version
-   pub payer:Option<String>,
+    pub data: String,
+    /// set to json:false in request, returns abieos-packed version
+    pub payer: Option<String>,
 }
 #[derive(Debug, Deserialize)]
 pub struct GetTableRows {
     pub rows: Vec<GetTableRow>,
     pub more: bool,
-    pub next_key:String,
+    pub next_key: String,
 }

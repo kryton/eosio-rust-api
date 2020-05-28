@@ -6,7 +6,6 @@
 #[macro_use]
 extern crate error_chain;
 
-
 mod errors {
     error_chain! {
     foreign_links {
@@ -17,18 +16,25 @@ mod errors {
     }
 }
 
-use crate::errors::{Result, Error};
-use std::{env, fs};
-use eosio_client_api::json_rpc::{EOSRPC, create_setcode_action, create_setabi_action, AbiTrio};
-use eosio_client_api::wallet_types::{Wallet, get_wallet_pass};
-use eosio_client_api::api_types::{ActionIn, GetInfo, vec_u8_to_hex, AuthorizationIn};
+use crate::errors::{Error, Result};
+use chrono::Duration;
+use eosio_client_api::api_types::{vec_u8_to_hex, ActionIn, AuthorizationIn, GetInfo};
+use eosio_client_api::json_rpc::{create_setabi_action, create_setcode_action, AbiTrio, EOSRPC};
+use eosio_client_api::wallet_types::{get_wallet_pass, Wallet};
 use eosio_client_api::wasm::WASM;
 use libabieos_sys::ABIEOS;
-use chrono::Duration;
+use std::{env, fs};
 //use serde_json::Value;
 use serde_json::json;
 
-fn upgrade_wasm(wallet: &Wallet, eos: &EOSRPC, wasm: &WASM, abi: &str, account: &str, info: &GetInfo) -> Result<()> {
+fn upgrade_wasm(
+    wallet: &Wallet,
+    eos: &EOSRPC,
+    wasm: &WASM,
+    abi: &str,
+    account: &str,
+    info: &GetInfo,
+) -> Result<()> {
     let hash = wasm.hash();
     let hash_str = vec_u8_to_hex(&hash)?;
     let stored_hash = eos.get_code_hash(account)?;
@@ -37,24 +43,32 @@ fn upgrade_wasm(wallet: &Wallet, eos: &EOSRPC, wasm: &WASM, abi: &str, account: 
         //  let _eosio_raw = eos.get_raw_abi("eosio")?.decode_abi()?;
         let exp_time = info.set_exp_time(Duration::seconds(3600));
         let abi_trio = AbiTrio::create("eosio", "eosio", &eos)?;
-        let action_code = create_setcode_action(&abi_trio.acct_abi, account, wasm).map_err(|e| {
-            abi_trio.destroy();
-            Error::with_chain(e, "upgrade_wasm/create_setcode")
-        })?;
+        let action_code =
+            create_setcode_action(&abi_trio.acct_abi, account, wasm).map_err(|e| {
+                abi_trio.destroy();
+                Error::with_chain(e, "upgrade_wasm/create_setcode")
+            })?;
 
-        let action_abi = create_setabi_action(&abi_trio.sys_abi, &abi_trio.acct_abi, account, abi).map_err(|e| {
-            abi_trio.destroy();
-            Error::with_chain(e, "upgrade_wasm/create_setabi")
-        })?;
+        let action_abi = create_setabi_action(&abi_trio.sys_abi, &abi_trio.acct_abi, account, abi)
+            .map_err(|e| {
+                abi_trio.destroy();
+                Error::with_chain(e, "upgrade_wasm/create_setabi")
+            })?;
 
         let actions: Vec<ActionIn> = vec![action_code, action_abi];
 
-        let _tr = eos.push_transaction(&abi_trio.txn_abi, &wallet,
-                                       actions,
-                                       &info.head_block_id, exp_time).map_err(|e| {
-            abi_trio.destroy();
-            Error::with_chain(e, "upgrade_wasm/push_transaction")
-        })?;
+        let _tr = eos
+            .push_transaction(
+                &abi_trio.txn_abi,
+                &wallet,
+                actions,
+                &info.head_block_id,
+                exp_time,
+            )
+            .map_err(|e| {
+                abi_trio.destroy();
+                Error::with_chain(e, "upgrade_wasm/push_transaction")
+            })?;
 
         println!("Code & ABI has been uploaded");
         Ok(())
@@ -64,13 +78,22 @@ fn upgrade_wasm(wallet: &Wallet, eos: &EOSRPC, wasm: &WASM, abi: &str, account: 
     }
 }
 
-pub fn create_game_action(abieos: &ABIEOS, main: &str, host: &str, challenger: &str) -> Result<ActionIn> {
-    let auth = AuthorizationIn { permission: "active".to_string(), actor: String::from(host) };
+pub fn create_game_action(
+    abieos: &ABIEOS,
+    main: &str,
+    host: &str,
+    challenger: &str,
+) -> Result<ActionIn> {
+    let auth = AuthorizationIn {
+        permission: "active".to_string(),
+        actor: String::from(host),
+    };
     let v_auth: Vec<AuthorizationIn> = vec![auth];
     let js = json!( {
         "challenger": String::from(challenger),
         "host":String::from(host),
-    }).to_string();
+    })
+    .to_string();
     let hex = abieos.json_to_hex(main, "create", &js)?;
     let data = String::from(hex);
 
@@ -82,13 +105,22 @@ pub fn create_game_action(abieos: &ABIEOS, main: &str, host: &str, challenger: &
     })
 }
 
-pub fn close_game_action(abieos: &ABIEOS, main: &str, host: &str, challenger: &str) -> Result<ActionIn> {
-    let auth = AuthorizationIn { permission: "active".to_string(), actor: String::from(host) };
+pub fn close_game_action(
+    abieos: &ABIEOS,
+    main: &str,
+    host: &str,
+    challenger: &str,
+) -> Result<ActionIn> {
+    let auth = AuthorizationIn {
+        permission: "active".to_string(),
+        actor: String::from(host),
+    };
     let v_auth: Vec<AuthorizationIn> = vec![auth];
     let js = json!( {
         "challenger": String::from(challenger),
         "host":String::from(host),
-    }).to_string();
+    })
+    .to_string();
 
     let hex = abieos.json_to_hex(main, "create", &js)?;
     let data = String::from(hex);
@@ -101,10 +133,20 @@ pub fn close_game_action(abieos: &ABIEOS, main: &str, host: &str, challenger: &s
     })
 }
 
-pub fn move_game_action(abieos: &ABIEOS, main: &str, host: &str, challenger: &str,
-                        by: &str, row: u16, col: u16) -> Result<ActionIn> {
+pub fn move_game_action(
+    abieos: &ABIEOS,
+    main: &str,
+    host: &str,
+    challenger: &str,
+    by: &str,
+    row: u16,
+    col: u16,
+) -> Result<ActionIn> {
     // person doing the move 'by' authorizes it.
-    let auth = AuthorizationIn { permission: "active".to_string(), actor: String::from(by) };
+    let auth = AuthorizationIn {
+        permission: "active".to_string(),
+        actor: String::from(by),
+    };
     let v_auth: Vec<AuthorizationIn> = vec![auth];
     let js = json!( {
         "challenger": String::from(challenger),
@@ -112,8 +154,8 @@ pub fn move_game_action(abieos: &ABIEOS, main: &str, host: &str, challenger: &st
         "by":String::from(by),
         "row":row,
         "column":col
-    }).to_string();
-
+    })
+    .to_string();
 
     let hex = abieos.json_to_hex(main, "move", &js)?;
     let data = String::from(hex);
@@ -126,61 +168,116 @@ pub fn move_game_action(abieos: &ABIEOS, main: &str, host: &str, challenger: &st
     })
 }
 
-
-fn start_game(wallet: &Wallet, eos: &EOSRPC, game_acct: &str, player_host: &str, player_challenger: &str) -> Result<(usize, String)> {
+fn start_game(
+    wallet: &Wallet,
+    eos: &EOSRPC,
+    game_acct: &str,
+    player_host: &str,
+    player_challenger: &str,
+) -> Result<(usize, String)> {
     let info = eos.get_info()?;
     let exp_time = info.set_exp_time(Duration::seconds(3600));
     let abi_trio: AbiTrio = AbiTrio::create("eosio", game_acct, eos)?;
-    let ca = create_game_action(&abi_trio.acct_abi, game_acct, player_host, player_challenger).map_err(|e| {
+    let ca = create_game_action(
+        &abi_trio.acct_abi,
+        game_acct,
+        player_host,
+        player_challenger,
+    )
+    .map_err(|e| {
         abi_trio.destroy();
         Error::with_chain(e, "start_game/create_game_action")
     })?;
-    let tr = eos.push_transaction(&abi_trio.txn_abi, &wallet,
-                                  vec![ca],
-                                  &info.head_block_id, exp_time).map_err(|e| {
-        abi_trio.destroy();
-        Error::with_chain(e, "start_game/push_transaction")
-    })?;
+    let tr = eos
+        .push_transaction(
+            &abi_trio.txn_abi,
+            &wallet,
+            vec![ca],
+            &info.head_block_id,
+            exp_time,
+        )
+        .map_err(|e| {
+            abi_trio.destroy();
+            Error::with_chain(e, "start_game/push_transaction")
+        })?;
     abi_trio.destroy();
     Ok((tr.processed.block_num, tr.transaction_id))
 }
 
-fn end_game(wallet: &Wallet, eos: &EOSRPC, game_acct: &str, player_host: &str, player_challenger: &str) -> Result<(usize, String)> {
+fn end_game(
+    wallet: &Wallet,
+    eos: &EOSRPC,
+    game_acct: &str,
+    player_host: &str,
+    player_challenger: &str,
+) -> Result<(usize, String)> {
     let info = eos.get_info()?;
     let exp_time = info.set_exp_time(Duration::seconds(3600));
     let abi_trio: AbiTrio = AbiTrio::create("eosio", game_acct, eos)?;
-    let ca = close_game_action(&abi_trio.acct_abi, game_acct, player_host, player_challenger).map_err(|e| {
+    let ca = close_game_action(
+        &abi_trio.acct_abi,
+        game_acct,
+        player_host,
+        player_challenger,
+    )
+    .map_err(|e| {
         abi_trio.destroy();
         Error::with_chain(e, "end_game/close_game_action")
     })?;
-    let tr = eos.push_transaction(&abi_trio.txn_abi, &wallet,
-                                  vec![ca],
-                                  &info.head_block_id, exp_time).map_err(|e| {
-        abi_trio.destroy();
-        Error::with_chain(e, "end_game/push_transaction")
-    })?;
+    let tr = eos
+        .push_transaction(
+            &abi_trio.txn_abi,
+            &wallet,
+            vec![ca],
+            &info.head_block_id,
+            exp_time,
+        )
+        .map_err(|e| {
+            abi_trio.destroy();
+            Error::with_chain(e, "end_game/push_transaction")
+        })?;
     abi_trio.destroy();
     Ok((tr.processed.block_num, tr.transaction_id))
 }
 
-fn move_game(wallet: &Wallet, eos: &EOSRPC, game_acct: &str,
-             player_host: &str, player_challenger: &str,
-             by: &str, row: u16, col: u16) -> Result<(usize, String)> {
+fn move_game(
+    wallet: &Wallet,
+    eos: &EOSRPC,
+    game_acct: &str,
+    player_host: &str,
+    player_challenger: &str,
+    by: &str,
+    row: u16,
+    col: u16,
+) -> Result<(usize, String)> {
     let info = eos.get_info()?;
     let exp_time = info.set_exp_time(Duration::seconds(3600));
     let abi_trio: AbiTrio = AbiTrio::create("eosio", game_acct, eos)?;
-    let ca = move_game_action(&abi_trio.acct_abi, game_acct,
-                              player_host, player_challenger,
-                              by, row, col).map_err(|e| {
+    let ca = move_game_action(
+        &abi_trio.acct_abi,
+        game_acct,
+        player_host,
+        player_challenger,
+        by,
+        row,
+        col,
+    )
+    .map_err(|e| {
         abi_trio.destroy();
         Error::with_chain(e, "move_game/move_game_action")
     })?;
-    let tr = eos.push_transaction(&abi_trio.txn_abi, &wallet,
-                                  vec![ca],
-                                  &info.head_block_id, exp_time).map_err(|e| {
-        abi_trio.destroy();
-        Error::with_chain(e, "move_game/push_transaction")
-    })?;
+    let tr = eos
+        .push_transaction(
+            &abi_trio.txn_abi,
+            &wallet,
+            vec![ca],
+            &info.head_block_id,
+            exp_time,
+        )
+        .map_err(|e| {
+            abi_trio.destroy();
+            Error::with_chain(e, "move_game/push_transaction")
+        })?;
     abi_trio.destroy();
     Ok((tr.processed.block_num, tr.transaction_id))
 }
@@ -188,14 +285,26 @@ fn move_game(wallet: &Wallet, eos: &EOSRPC, game_acct: &str,
 fn get_board(eos: &EOSRPC, game_acct: &str) -> Result<()> {
     let abi_trio: AbiTrio = AbiTrio::create("eosio", game_acct, eos)?;
 
-    let tr = eos.get_table_rows(&game_acct, "tictactoe",
-                                "games", "",
-                                "", "", 10,
-                                "", "", "dec", false, true)?;
+    let tr = eos.get_table_rows(
+        &game_acct,
+        "tictactoe",
+        "games",
+        "",
+        "",
+        "",
+        10,
+        "",
+        "",
+        "dec",
+        false,
+        true,
+    )?;
     for row in tr.rows {
         let data = row.data;
 
-        let str = abi_trio.acct_abi.hex_to_json(&game_acct, "game", data.as_bytes());
+        let str = abi_trio
+            .acct_abi
+            .hex_to_json(&game_acct, "game", data.as_bytes());
         println!("{:?}", str);
     }
     Ok(())
@@ -239,14 +348,21 @@ fn get_args() -> Result<(String, String, String, String, String)> {
             "tafoacvsqlmw"
         }
     };
-    Ok((host.parse().unwrap(), wallet_url.parse().unwrap(), account.parse().unwrap(), player_host.parse().unwrap(), player_challenger.parse().unwrap()))
+    Ok((
+        host.parse().unwrap(),
+        wallet_url.parse().unwrap(),
+        account.parse().unwrap(),
+        player_host.parse().unwrap(),
+        player_challenger.parse().unwrap(),
+    ))
 }
 
 fn run() -> Result<bool> {
     let (host, wallet_url, account, player_host, player_challenger) = get_args()?;
     let eos = EOSRPC::blocking(String::from(host))?;
     let info = eos.get_info()?;
-    let wallet = Wallet::create_with_chain_id(EOSRPC::blocking(String::from(wallet_url))?, &info.chain_id);
+    let wallet =
+        Wallet::create_with_chain_id(EOSRPC::blocking(String::from(wallet_url))?, &info.chain_id);
     let wallet_pass = get_wallet_pass()?;
 
     let ttt_wasm: WASM = WASM::read_file("examples/tictactoe.wasm")?;
@@ -258,27 +374,32 @@ fn run() -> Result<bool> {
     // clears a game if there way one
     let _trans_end = end_game(&wallet, &eos, &account, &player_host, &player_challenger);
 
-
     let trans_start = start_game(&wallet, &eos, &account, &player_host, &player_challenger)?;
     println!("Started {:?}", trans_start);
 
     let moves = vec![
-        (&player_host,1,1),
-        (&player_challenger,0,0),
-        (&player_host,1,0),
-        (&player_challenger,2,2),
-        (&player_host,1,2),
-
+        (&player_host, 1, 1),
+        (&player_challenger, 0, 0),
+        (&player_host, 1, 0),
+        (&player_challenger, 2, 2),
+        (&player_host, 1, 2),
     ];
     for g_move in moves {
-      //  println!("Move {} {}/{}", &g_move.0, g_move.1, g_move.2);
-        let trans_move=move_game(&wallet,&eos,&account,
-                                 &player_host, &player_challenger,
-                  &g_move.0, g_move.1, g_move.2)?;
-        println!("Move {} {:?}", &g_move.0,trans_move);
-        get_board(&eos,&account)?;
+        //  println!("Move {} {}/{}", &g_move.0, g_move.1, g_move.2);
+        let trans_move = move_game(
+            &wallet,
+            &eos,
+            &account,
+            &player_host,
+            &player_challenger,
+            &g_move.0,
+            g_move.1,
+            g_move.2,
+        )?;
+        println!("Move {} {:?}", &g_move.0, trans_move);
+        get_board(&eos, &account)?;
     }
-   // get_board(&eos,&account)?;
+    // get_board(&eos,&account)?;
     let trans_end = end_game(&wallet, &eos, &account, &player_host, &player_challenger)?;
     println!("Ended {:?}", trans_end);
 

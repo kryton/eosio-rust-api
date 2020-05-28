@@ -1,16 +1,16 @@
+use crate::api_types::*;
+use crate::errors::{Error, ErrorKind, Result};
+use crate::wallet_types::Wallet;
+use crate::wasm::WASM;
+use eosio_client_keys::EOSPublicKey;
+use libabieos_sys::{AbiFiles, ABIEOS};
 use reqwest::blocking::Client;
+use reqwest::header::{HeaderValue, CONTENT_TYPE};
 use reqwest::StatusCode;
 use serde_json::Value;
-use reqwest::header::{CONTENT_TYPE, HeaderValue};
-use crate::errors::{Result, ErrorKind, Error};
-use crate::api_types::*;
-use crate::wallet_types::Wallet;
-use eosio_client_keys::EOSPublicKey;
-use crate::wasm::WASM;
-use libabieos_sys::{ABIEOS, AbiFiles};
 //use rust_embed::RustEmbed;
 
-use chrono::{Utc, DateTime};
+use chrono::{DateTime, Utc};
 
 pub const ERROR_TXN_SET_EXACT_CODE: usize = 3_160_008;
 
@@ -26,7 +26,12 @@ impl EOSRPC {
         let client = reqwest::blocking::Client::new();
         let abi_f = AbiFiles::get("abi.abi.json").unwrap();
         let abi_abi_js: String = String::from_utf8(abi_f.as_ref().to_vec())?;
-        let transaction_abi_js: String = String::from_utf8(AbiFiles::get("transaction.abi.json").unwrap().as_ref().to_vec())?;
+        let transaction_abi_js: String = String::from_utf8(
+            AbiFiles::get("transaction.abi.json")
+                .unwrap()
+                .as_ref()
+                .to_vec(),
+        )?;
         Ok(EOSRPC {
             client,
             host,
@@ -37,7 +42,12 @@ impl EOSRPC {
 
     pub fn blocking_ex(host: String, abi_abi_js: &str, transaction_abi_js: &str) -> EOSRPC {
         let client = reqwest::blocking::Client::new();
-        EOSRPC { client, host, abi_abi_js: abi_abi_js.to_string(), transaction_abi_js: transaction_abi_js.to_string() }
+        EOSRPC {
+            client,
+            host,
+            abi_abi_js: abi_abi_js.to_string(),
+            transaction_abi_js: transaction_abi_js.to_string(),
+        }
     }
 
     pub fn blocking_req(&self, url: &str, in_json: Value) -> Result<String> {
@@ -51,7 +61,10 @@ impl EOSRPC {
         }
         let status = response.status();
 
-        if status == StatusCode::OK || status == StatusCode::CREATED || status == StatusCode::ACCEPTED {
+        if status == StatusCode::OK
+            || status == StatusCode::CREATED
+            || status == StatusCode::ACCEPTED
+        {
             Ok(response.text()?)
         } else {
             let tx: &str = &response.text()?;
@@ -111,7 +124,11 @@ impl EOSRPC {
         Ok(gb)
     }
 
-    pub fn get_required_keys(&self, transaction: &TransactionIn, keys: Vec<EOSPublicKey>) -> Result<RequiredKeys> {
+    pub fn get_required_keys(
+        &self,
+        transaction: &TransactionIn,
+        keys: Vec<EOSPublicKey>,
+    ) -> Result<RequiredKeys> {
         let mut key_str: Vec<String> = vec![];
         for key in keys {
             let x = key.to_eos_string()?;
@@ -124,7 +141,11 @@ impl EOSRPC {
         Ok(rk)
     }
 
-    pub fn get_abi_from_account(&self, abieos_eosio: &ABIEOS, account_name: &str) -> Result<ABIEOS> {
+    pub fn get_abi_from_account(
+        &self,
+        abieos_eosio: &ABIEOS,
+        account_name: &str,
+    ) -> Result<ABIEOS> {
         let rawabi = self.get_raw_abi(account_name)?;
         let account_abi = rawabi.decode_abi()?;
 
@@ -132,7 +153,14 @@ impl EOSRPC {
         Ok(ABIEOS::new_with_abi(account_name, &account_abi_json)?)
     }
 
-    pub fn push_transaction(&self, abieos: &ABIEOS, wallet: &Wallet, actions: Vec<ActionIn>, ref_block: &str, exp_time: DateTime<Utc>) -> Result<TransactionResponse> {
+    pub fn push_transaction(
+        &self,
+        abieos: &ABIEOS,
+        wallet: &Wallet,
+        actions: Vec<ActionIn>,
+        ref_block: &str,
+        exp_time: DateTime<Utc>,
+    ) -> Result<TransactionResponse> {
         let ti = TransactionIn::simple(actions, ref_block, exp_time)?;
 
         let trx_json = serde_json::to_string(&ti)?;
@@ -140,7 +168,8 @@ impl EOSRPC {
 
         let pubkeys = wallet.keys()?;
         let required_keys = self.get_required_keys(&ti, pubkeys)?;
-        let eospubs: Vec<EOSPublicKey> = EOSPublicKey::from_eos_strings(&required_keys.required_keys)?;
+        let eospubs: Vec<EOSPublicKey> =
+            EOSPublicKey::from_eos_strings(&required_keys.required_keys)?;
 
         let signed_transaction = wallet.sign_transaction(ti, eospubs)?;
         let pti = PackedTransactionIn {
@@ -156,10 +185,21 @@ impl EOSRPC {
         Ok(tr)
     }
 
-    pub fn get_table_rows(&self, code: &str, scope: &str, table: &str, table_key: &str,
-                          lower_bound: &str, upper_bound: &str, limit: usize, key_type: &str,
-                          index_position: &str, encode_type: &str, reverse: bool,
-                          show_payer: bool) -> Result<GetTableRows> {
+    pub fn get_table_rows(
+        &self,
+        code: &str,
+        scope: &str,
+        table: &str,
+        table_key: &str,
+        lower_bound: &str,
+        upper_bound: &str,
+        limit: usize,
+        key_type: &str,
+        index_position: &str,
+        encode_type: &str,
+        reverse: bool,
+        show_payer: bool,
+    ) -> Result<GetTableRows> {
         let in_j = GetTableRowsIn {
             json: false,
             code: code.parse().unwrap(),
@@ -180,16 +220,22 @@ impl EOSRPC {
         let tr: GetTableRows = serde_json::from_str(&res).unwrap();
         Ok(tr)
     }
-    pub fn get_table_by_scope(&self,code:&str, table:&str,
-                              lower_bound:&str, upper_bound:&str,
-                              limit:usize, reverse:bool) -> Result<GetTableByScope> {
+    pub fn get_table_by_scope(
+        &self,
+        code: &str,
+        table: &str,
+        lower_bound: &str,
+        upper_bound: &str,
+        limit: usize,
+        reverse: bool,
+    ) -> Result<GetTableByScope> {
         let pti = GetTableByScopeIn {
             code: code.parse().unwrap(),
             table: table.parse().unwrap(),
             lower_bound: lower_bound.parse().unwrap(),
             upper_bound: upper_bound.parse().unwrap(),
             limit,
-            reverse
+            reverse,
         };
         let in_val = serde_json::json!(pti);
         let res = self.blocking_req("/v1/chain/get_table_by_scope", in_val)?;
@@ -198,16 +244,19 @@ impl EOSRPC {
     }
 }
 
-
 pub fn create_setcode_action(acct_abieos: &ABIEOS, name: &str, code: &WASM) -> Result<ActionIn> {
-    let auth = AuthorizationIn { permission: "active".to_string(), actor: String::from(name) };
+    let auth = AuthorizationIn {
+        permission: "active".to_string(),
+        actor: String::from(name),
+    };
     let v_auth: Vec<AuthorizationIn> = vec![auth];
     let data = ActionSetcodeData {
         account: String::from(name),
         vmtype: 0,
         vmversion: 0,
         code: vec_u8_to_hex(&code.code)?,
-    }.to_hex(acct_abieos)?;
+    }
+    .to_hex(acct_abieos)?;
 
     Ok(ActionIn {
         name: "setcode".to_string(),
@@ -218,14 +267,18 @@ pub fn create_setcode_action(acct_abieos: &ABIEOS, name: &str, code: &WASM) -> R
 }
 
 pub fn create_setcode_clear_action(acct_abieos: &ABIEOS, name: &str) -> Result<ActionIn> {
-    let auth = AuthorizationIn { permission: "active".to_string(), actor: String::from(name) };
+    let auth = AuthorizationIn {
+        permission: "active".to_string(),
+        actor: String::from(name),
+    };
     let v_auth: Vec<AuthorizationIn> = vec![auth];
     let data = ActionSetcodeData {
         account: String::from(name),
         vmtype: 0,
         vmversion: 0,
         code: vec_u8_to_hex(&WASM::dummy())?,
-    }.to_hex(acct_abieos)?;
+    }
+    .to_hex(acct_abieos)?;
 
     Ok(ActionIn {
         name: "setcode".to_string(),
@@ -244,17 +297,24 @@ pub struct AbiTrio {
 impl AbiTrio {
     pub fn create(sys_name: &str, sys_acct_name: &str, eos: &EOSRPC) -> Result<AbiTrio> {
         let sys_abi = ABIEOS::new_with_abi(sys_name, &eos.abi_abi_js)?;
-        let txn_abi: ABIEOS = ABIEOS::new_with_abi(sys_name, &eos.transaction_abi_js).map_err(|e| {
-            sys_abi.destroy();
-            Error::with_chain(e, "AbiTrio_txn")
-        })?;
-        let acct_abi: ABIEOS = eos.get_abi_from_account(&sys_abi, sys_acct_name).map_err(|e| {
-            sys_abi.destroy();
-            txn_abi.destroy();
-            Error::with_chain(e, "AbiTrio_act")
-        })?;
+        let txn_abi: ABIEOS =
+            ABIEOS::new_with_abi(sys_name, &eos.transaction_abi_js).map_err(|e| {
+                sys_abi.destroy();
+                Error::with_chain(e, "AbiTrio_txn")
+            })?;
+        let acct_abi: ABIEOS = eos
+            .get_abi_from_account(&sys_abi, sys_acct_name)
+            .map_err(|e| {
+                sys_abi.destroy();
+                txn_abi.destroy();
+                Error::with_chain(e, "AbiTrio_act")
+            })?;
 
-        Ok(AbiTrio { sys_abi, txn_abi, acct_abi })
+        Ok(AbiTrio {
+            sys_abi,
+            txn_abi,
+            acct_abi,
+        })
     }
     pub fn destroy(&self) {
         self.acct_abi.destroy();
@@ -263,12 +323,24 @@ impl AbiTrio {
     }
 }
 
-pub fn create_setabi_action(sys_abieos: &ABIEOS, acct_abieos: &ABIEOS, name: &str, abi: &str) -> Result<ActionIn> {
-    let auth = AuthorizationIn { permission: "active".to_string(), actor: String::from(name) };
+pub fn create_setabi_action(
+    sys_abieos: &ABIEOS,
+    acct_abieos: &ABIEOS,
+    name: &str,
+    abi: &str,
+) -> Result<ActionIn> {
+    let auth = AuthorizationIn {
+        permission: "active".to_string(),
+        actor: String::from(name),
+    };
     let v_auth: Vec<AuthorizationIn> = vec![auth];
     let abi_hex = sys_abieos.json_to_hex("eosio", "abi_def", abi)?;
     // let abi_s = String::from(abi);
-    let data = ActionSetData { account: String::from(name), abi: String::from(abi_hex) }.to_hex(acct_abieos)?;
+    let data = ActionSetData {
+        account: String::from(name),
+        abi: String::from(abi_hex),
+    }
+    .to_hex(acct_abieos)?;
 
     Ok(ActionIn {
         name: "setabi".to_string(),
@@ -278,25 +350,24 @@ pub fn create_setabi_action(sys_abieos: &ABIEOS, acct_abieos: &ABIEOS, name: &st
     })
 }
 
-
 #[cfg(test)]
 mod test {
     use super::*;
 
     //use crate::api_types::GetAccount;
     use crate::wallet_types::{get_wallet_pass, EOSIO_CHAIN_ID};
-    use chrono::{NaiveDateTime, Duration};
+    use chrono::{Duration, NaiveDateTime};
     use std::fs;
 
     const TEST_HOST: &str = "http://127.0.0.1:8888";
-   // const TEST_HOST: &str = "https://api.testnet.eos.io";
+    // const TEST_HOST: &str = "https://api.testnet.eos.io";
     const TEST_KEOSD: &str = "http://127.0.0.1:3888";
 
     const TEST_WALLET_NAME: &str = "default";
     const TEST_ACCOUNT_NAME: &str = "fwonhjnefmps";
 
-//const TEST_HOST: &str = "https://eos.greymass.com";
-//const TEST_HOST: &str = "https://chain.wax.io";
+    //const TEST_HOST: &str = "https://eos.greymass.com";
+    //const TEST_HOST: &str = "https://chain.wax.io";
 
     #[test]
     fn blocking_req_test() -> Result<()> {
@@ -324,9 +395,7 @@ mod test {
                 eprintln!("{:#?}", _e);
                 assert!(false)
             }
-            Ok(_dt) => {
-                assert!(true)
-            }
+            Ok(_dt) => assert!(true),
         }
     }
 
@@ -335,9 +404,12 @@ mod test {
         //  let client = reqwest::blocking::Client::new();
         let eos = EOSRPC::blocking(String::from(TEST_HOST))?;
         let keys = vec![
-            EOSPublicKey::from_eos_string("EOS6zUgp7uAV1pCTXZMGJyH3dLUSWJUkZWGA9WpWxyP2pCT3mAkNX").unwrap(),
-            EOSPublicKey::from_eos_string("EOS7ctUUZhtCGHnxUnh4Rg5eethj3qNS5S9fijyLMKgRsBLh8eMBB").unwrap(),
-            EOSPublicKey::from_eos_string("EOS8fdsPr1aKsmszNHeY4RrgupbabNQ5nmLgQWMEkTn2dENrPbRgP").unwrap(),
+            EOSPublicKey::from_eos_string("EOS6zUgp7uAV1pCTXZMGJyH3dLUSWJUkZWGA9WpWxyP2pCT3mAkNX")
+                .unwrap(),
+            EOSPublicKey::from_eos_string("EOS7ctUUZhtCGHnxUnh4Rg5eethj3qNS5S9fijyLMKgRsBLh8eMBB")
+                .unwrap(),
+            EOSPublicKey::from_eos_string("EOS8fdsPr1aKsmszNHeY4RrgupbabNQ5nmLgQWMEkTn2dENrPbRgP")
+                .unwrap(),
         ];
         let gi: GetInfo = eos.get_info()?;
         let exp_time = gi.set_exp_time(Duration::seconds(1800));
@@ -371,10 +443,20 @@ mod test {
     #[test]
     fn blocking_table_rows() -> Result<()> {
         let eos = EOSRPC::blocking(String::from(TEST_HOST))?;
-        let _r = eos.get_table_rows(TEST_ACCOUNT_NAME,"tictactoe",
-                                   "games", "", "", "",
-                                   10, "", "", "dec",
-                                   false, true);
+        let _r = eos.get_table_rows(
+            TEST_ACCOUNT_NAME,
+            "tictactoe",
+            "games",
+            "",
+            "",
+            "",
+            10,
+            "",
+            "",
+            "dec",
+            false,
+            true,
+        );
         Ok(())
     }
 
@@ -385,16 +467,17 @@ mod test {
     #[test]
     fn blocking_table_by_scope() -> Result<()> {
         let eos = EOSRPC::blocking(String::from(TEST_HOST))?;
-        let _r = eos.get_table_by_scope("eosio.token","",
-                                       TEST_ACCOUNT_NAME,"",
-                                       10,false);
+        let _r = eos.get_table_by_scope("eosio.token", "", TEST_ACCOUNT_NAME, "", 10, false);
         Ok(())
     }
 
     #[test]
     fn blocking_push_txn() -> Result<()> {
         let eos = EOSRPC::blocking(String::from(TEST_HOST))?;
-        let wallet = Wallet::create_with_chain_id(EOSRPC::blocking(String::from(TEST_KEOSD))?, EOSIO_CHAIN_ID);
+        let wallet = Wallet::create_with_chain_id(
+            EOSRPC::blocking(String::from(TEST_KEOSD))?,
+            EOSIO_CHAIN_ID,
+        );
         let wallet_pass = get_wallet_pass()?;
         wallet.unlock(&TEST_WALLET_NAME, &wallet_pass)?;
         let wasm = WASM::read_file("test/good-2.wasm")?;
@@ -411,29 +494,43 @@ mod test {
             Error::with_chain(e, "blocking_push_txn/create_setcode_clear_action")
         })?;
 
-
-        let _res_clear_int = eos.push_transaction(&abi_trio.txn_abi, &wallet,
-                                                 vec![action_clear],
-                                                 &gi.head_block_id, exp_time).map_err(|e| {
-            abi_trio.destroy();
-            Error::with_chain(e, "blocking_push_txn/push_transaction(clear)")
-        })?;
+        let _res_clear_int = eos
+            .push_transaction(
+                &abi_trio.txn_abi,
+                &wallet,
+                vec![action_clear],
+                &gi.head_block_id,
+                exp_time,
+            )
+            .map_err(|e| {
+                abi_trio.destroy();
+                Error::with_chain(e, "blocking_push_txn/push_transaction(clear)")
+            })?;
 
         let action = create_setcode_action(&abi_trio.acct_abi, &name, &wasm).map_err(|e| {
             abi_trio.destroy();
             Error::with_chain(e, "blocking_push_txn/create_setcode_action")
         })?;
-        let action_abi = create_setabi_action(&abi_trio.sys_abi, &abi_trio.acct_abi, &name, &wasm_abi).map_err(|e| {
-            abi_trio.destroy();
-            Error::with_chain(e, "blocking_push_txn/create_setabi_action")
-        })?;
+        let action_abi =
+            create_setabi_action(&abi_trio.sys_abi, &abi_trio.acct_abi, &name, &wasm_abi).map_err(
+                |e| {
+                    abi_trio.destroy();
+                    Error::with_chain(e, "blocking_push_txn/create_setabi_action")
+                },
+            )?;
 
-        let _res_int = eos.push_transaction(&abi_trio.txn_abi, &wallet,
-                                           vec![action, action_abi],
-                                           &gi.head_block_id, exp_time).map_err(|e| {
-            abi_trio.destroy();
-            Error::with_chain(e, "blocking_push_txn/push_transaction(set-code/abi)")
-        })?;
+        let _res_int = eos
+            .push_transaction(
+                &abi_trio.txn_abi,
+                &wallet,
+                vec![action, action_abi],
+                &gi.head_block_id,
+                exp_time,
+            )
+            .map_err(|e| {
+                abi_trio.destroy();
+                Error::with_chain(e, "blocking_push_txn/push_transaction(set-code/abi)")
+            })?;
 
         abi_trio.destroy();
         Ok(())
@@ -451,26 +548,33 @@ mod test {
     fn blocking_getsetabi() -> Result<()> {
         let eos = EOSRPC::blocking(String::from(TEST_HOST))?;
         let wasm_abi = fs::read_to_string("test/good-2.abi")?;
-        let wallet = Wallet::create_with_chain_id(EOSRPC::blocking(String::from(TEST_KEOSD))?, EOSIO_CHAIN_ID);
+        let wallet = Wallet::create_with_chain_id(
+            EOSRPC::blocking(String::from(TEST_KEOSD))?,
+            EOSIO_CHAIN_ID,
+        );
         let wallet_pass = get_wallet_pass()?;
         wallet.unlock(&TEST_WALLET_NAME, &wallet_pass)?;
         let gi = eos.get_info()?;
         let exp_time = gi.set_exp_time(Duration::seconds(1800));
 
-
         let name = TEST_ACCOUNT_NAME;
         let trio = AbiTrio::create("eosio", "eosio", &eos)?;
 
-        let action_abi = create_setabi_action(&trio.sys_abi, &trio.acct_abi, &name, &wasm_abi).map_err(|e|
-            {
+        let action_abi = create_setabi_action(&trio.sys_abi, &trio.acct_abi, &name, &wasm_abi)
+            .map_err(|e| {
                 &trio.destroy();
                 Error::with_chain(e, "create_setabi_action")
             })?;
 
-        let _tr = eos.push_transaction(&trio.txn_abi, &wallet,
-                                       vec![action_abi],
-                                       &gi.head_block_id, exp_time).map_err(|e|
-            {
+        let _tr = eos
+            .push_transaction(
+                &trio.txn_abi,
+                &wallet,
+                vec![action_abi],
+                &gi.head_block_id,
+                exp_time,
+            )
+            .map_err(|e| {
                 trio.destroy();
                 Error::with_chain(e, "push_transaction")
             })?;
@@ -491,4 +595,3 @@ mod test {
         Ok(())
     }
 }
-

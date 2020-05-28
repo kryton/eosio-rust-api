@@ -1,5 +1,5 @@
-use error_chain::error_chain;
 use crate::api_types::ErrorInt;
+use error_chain::error_chain;
 
 impl From<Box<dyn std::error::Error>> for Error {
     fn from(e: Box<dyn std::error::Error>) -> Self {
@@ -21,37 +21,36 @@ impl PartialEq for Error {
     }
 }
 
-
-error_chain!{
-        foreign_links {
-            ReqwestError(::reqwest::Error);
-            SerdeJsonError(serde_json::Error);
-            EOSIOKeysError(eosio_client_keys::errors::Error);
-            IOError(std::io::Error);
-            UTF8Error(std::string::FromUtf8Error);
-            LibABIEOS(libabieos_sys::errors::Error);
-            Base64(base64::DecodeError);
+error_chain! {
+    foreign_links {
+        ReqwestError(::reqwest::Error);
+        SerdeJsonError(serde_json::Error);
+        EOSIOKeysError(eosio_client_keys::errors::Error);
+        IOError(std::io::Error);
+        UTF8Error(std::string::FromUtf8Error);
+        LibABIEOS(libabieos_sys::errors::Error);
+        Base64(base64::DecodeError);
+    }
+    errors {
+        InvalidResponseContentType{
+            description("expected a content type of application/json")
+            display("invalid content type")
         }
-        errors {
-            InvalidResponseContentType{
-                description("expected a content type of application/json")
-                display("invalid content type")
-            }
-            InvalidResponseStatus(err:ErrorInt) {
-                description("EOSIO API error")
-                display("EOSIO API returned {}-{}({}) {:#?}", err.code, err.name,err.what,err.details)
-            }
-            InvalidWASMFormat {
-                description("WASM file has incorrect header")
-                display("Invalid WASM file format")
-            }
-            InvalidABINameLength {
-                description("ABI Names should be max 13 characters long")
-                display("ABI Names should be max 13 characters long")
-            }
-            WalletMissingChainID {
-                description("Wallet needs a Chain ID to sign transactions")
-                display("Missing chain ID in wallet")
-            }
+        InvalidResponseStatus(err:ErrorInt) {
+            description("EOSIO API error")
+            display("EOSIO API returned {}-{}({}) {:#?}", err.code, err.name,err.what,err.details)
+        }
+        InvalidWASMFormat {
+            description("WASM file has incorrect header")
+            display("Invalid WASM file format")
+        }
+        InvalidABINameLength {
+            description("ABI Names should be max 13 characters long")
+            display("ABI Names should be max 13 characters long")
+        }
+        WalletMissingChainID {
+            description("Wallet needs a Chain ID to sign transactions")
+            display("Missing chain ID in wallet")
         }
     }
+}

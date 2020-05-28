@@ -1,9 +1,9 @@
-use crate::errors::{Result, ErrorKind};
+use crate::errors::{ErrorKind, Result};
 
 pub const NAME_LENGTH: usize = 13;
 
 pub struct ABIName {
-    pub value:u64
+    pub value: u64,
 }
 
 impl ABIName {
@@ -12,7 +12,7 @@ impl ABIName {
         let chars = string.as_bytes();
         let length = chars.len();
         if length > NAME_LENGTH {
-            return Err(ErrorKind::InvalidABINameLength.into())
+            return Err(ErrorKind::InvalidABINameLength.into());
         }
         //let lc = string.to_ascii_lowercase();
         let mut i: usize = 0;
@@ -26,17 +26,18 @@ impl ABIName {
         if i > 12 {
             value |= char_to_symbol(chars[12]) & 0x0F;
         }
-        Ok(ABIName{value})
+        Ok(ABIName { value })
     }
 
     pub fn to_str(&self) -> Result<String> {
-        const CHARMAP: [char; 32] = ['.', '1', '2', '3', '4', '5', 'a', 'b', 'c', 'd',
-                                     'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-                                     'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+        const CHARMAP: [char; 32] = [
+            '.', '1', '2', '3', '4', '5', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
+            'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+        ];
 
         let mut result: Vec<u8> = Vec::with_capacity(13);
         for _x in 0..=12 {
-            result.push(b'.' );
+            result.push(b'.');
         }
 
         let mut tmp: u64 = self.value;
@@ -60,16 +61,16 @@ impl ABIName {
             i -= 1;
         }
 
-       Ok(String::from_utf8(result)?)
+        Ok(String::from_utf8(result)?)
     }
 }
 
 fn char_to_symbol(c: u8) -> u64 {
     if c >= b'a' && c <= b'z' {
-        let v: u8 = (c - b'a' ) + 6;
+        let v: u8 = (c - b'a') + 6;
         return v as u64;
     }
-    if c >= b'1'  && c <= b'5'  {
+    if c >= b'1' && c <= b'5' {
         let v = (c - b'1') + 1;
         return v as u64;
     }
@@ -81,7 +82,9 @@ mod test {
     use super::*;
     #[test]
     fn name_to_str_test() {
-        let v = ABIName { value: 0x5f2936be6a5cab80 };
+        let v = ABIName {
+            value: 0x5f2936be6a5cab80,
+        };
         assert_eq!(v.to_str().unwrap(), "fwonhjnefmps");
         let value = 0;
         assert_eq!((ABIName { value }).to_str().unwrap(), ".");
@@ -115,7 +118,7 @@ mod test {
     fn str_to_name_test() {
         match ABIName::from_str("fwonhjnefmps") {
             Err(_) => assert!(false),
-            Ok(val) => assert_eq!(val.value,0x5f2936be6a5cab80)
+            Ok(val) => assert_eq!(val.value, 0x5f2936be6a5cab80),
         }
     }
 }

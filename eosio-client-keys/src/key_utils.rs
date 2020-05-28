@@ -7,10 +7,10 @@ use std::time::{Duration, Instant};
 use self::rand::thread_rng;
 use crate::hash::{hash_ripemd160, hash_sha256};
 
+use crate::errors::{ErrorKind, Result};
 use rand::distributions::Standard;
 use rand::rngs::OsRng;
 use rand::Rng;
-use crate::errors::{ErrorKind, Result};
 
 lazy_static! {
     pub static ref ENTROPY_COUNT: Mutex<usize> = Mutex::new(0);
@@ -213,11 +213,12 @@ pub fn check_encode(key_buffer: &[u8], key_type: &str) -> Result<String> {
   @arg {string} keyType = sha256x2, K1, etc
   @return {string} checksum encoded base58 string
 */
-pub fn check_decode(key_string: &[u8], key_type: &str) -> Result<Vec<u8>> { // , EosioEccError> {
+pub fn check_decode(key_string: &[u8], key_type: &str) -> Result<Vec<u8>> {
+    // , EosioEccError> {
     let buf: Vec<u8> = bs58::decode(key_string).into_vec().unwrap();
     let buffer_len = buf.len();
     if buffer_len <= 4 {
-         Err(ErrorKind::DecodeError(String::from("Key is too short")).into())
+        Err(ErrorKind::DecodeError(String::from("Key is too short")).into())
     } else {
         let post_len: usize = buffer_len.saturating_sub(4);
         let checksum = &buf[post_len..buffer_len];

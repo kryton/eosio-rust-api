@@ -35,7 +35,6 @@ mod test {
     use super::*;
     use sha2::Sha512;
 
-
     #[test]
     fn test_hmac() {
         let output = hmac(b"This is a test of HMAC", b"EOSIO");

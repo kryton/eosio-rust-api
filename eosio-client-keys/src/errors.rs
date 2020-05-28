@@ -1,6 +1,5 @@
 use error_chain::error_chain;
 
-
 impl From<Box<dyn std::error::Error>> for Error {
     fn from(e: Box<dyn std::error::Error>) -> Self {
         Self::from(format!("{:?}", e))

@@ -20,8 +20,6 @@ extern crate error_chain;
 
 use crate::errors::{ErrorKind, Result, Error};
 use std::os::raw::c_char;
-use std::ptr::slice_from_raw_parts;
-
 
 type ABIName = u64;
 
@@ -121,7 +119,7 @@ impl ABIEOS {
         } else {
             unsafe {
                 let json = ABIEOS::fix_json(CStr::from_ptr(json_p).to_str()?)?;
-                Ok(json)
+                Ok(json.clone())
             }
         }
     }
@@ -135,7 +133,11 @@ impl ABIEOS {
         Ok(result)
 
     }
-    pub fn json_to_hex(&self, contract_name: &str, type_str: &str, json: &str) -> Result<&str> {
+    ///
+    /// Safety
+    ///
+    /// abieos_get_xxx calls can potentially overwrite the memory returned on the next call.
+    pub fn json_to_hex(&self, contract_name: &str, type_str: &str, json: &str) -> Result<String> {
         match self.json_to_xx(contract_name, type_str, json) {
             Ok(0) => {
                 self.abieos_error().map_err(|e|  Error::with_chain(e, "json_to_hex"))?;
@@ -145,7 +147,8 @@ impl ABIEOS {
                 unsafe {
                     let hex_p = abieos_get_bin_hex(self.context);
                     let s = CStr::from_ptr(hex_p);
-                    Ok(s.to_str()?)
+                    // this should copy the memory over
+                    Ok(String::from(s.to_str()?).clone())
                 }
             },
             Err(e) =>{
@@ -154,6 +157,10 @@ impl ABIEOS {
         }
     }
 
+    ///
+    /// Safety
+    ///
+    /// abieos_get_xxx calls can potentially overwrite the memory returned on the next call.
     pub fn json_to_bin(&self, contract_name: &str, type_str: &str, json: &str) -> Result<Vec<u8>> {
         match self.json_to_xx(contract_name, type_str, json) {
             Ok(0) => {
@@ -166,7 +173,7 @@ impl ABIEOS {
                     let bin:*const ::std::os::raw::c_char = abieos_get_bin_data(self.context);
 
                     let v:&[u8] = std::slice::from_raw_parts(bin as *const u8, bin_size );
-                    let ve:Vec<u8> = v.to_vec();
+                    let ve:Vec<u8> = v.to_vec().clone();
                     Ok(ve)
                 }
             },
@@ -190,6 +197,8 @@ impl ABIEOS {
     }
 
     // for some reason json returned has a 0x10 instead of a newline.
+    // before removing this. make sure you copy the output of the API call to rust-managed memory
+    //
     fn fix_json(in_str: &str) -> Result<String> {
         let mut x: String;
         let mut i = 0;
@@ -243,7 +252,7 @@ mod test {
             assert_eq!(jsonResult, json);
             Ok(String::from(json))
         }();
-        let do_json_2_hex = || -> Result<&str> {
+        let do_json_2_hex = || -> Result<String> {
             let hex_out = abieos.json_to_hex("eosio", "abi_def", jsonResult)?;
             assert_eq!(hex_out.to_ascii_lowercase(), hex);
             Ok(hex_out)
@@ -267,7 +276,7 @@ mod test {
             assert_eq!(jsonResult, json);
             Ok(String::from(json))
         }();
-        let do_json_2_hex = || -> Result<&str> {
+        let do_json_2_hex = || -> Result<String> {
             let hex_out = abieos.json_to_hex("eosio", "transaction", jsonResult)?;
             assert_eq!(hex_out.to_ascii_uppercase(), hex);
 
@@ -286,7 +295,7 @@ mod test {
 
         let abieos: ABIEOS = ABIEOS::new_with_abi("eosio", &abi)?;
 
-        let do_json_2_hex = || -> Result<&str> {
+        let do_json_2_hex = || -> Result<String> {
             let hex_out = abieos.json_to_hex("eosio", "transaction", JSON)?;
             assert_eq!(hex_out.to_ascii_lowercase(), PACKED);
             Ok(hex_out)

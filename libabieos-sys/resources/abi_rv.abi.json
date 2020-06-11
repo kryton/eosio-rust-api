@@ -148,6 +148,20 @@
             ]
         },
         {
+            "name": "action_result",
+            "base": "",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "result_type",
+                    "type": "string"
+                }
+            ]
+        },
+        {
             "name": "abi_def",
             "base": "",
             "fields": [
@@ -186,6 +200,10 @@
                 {
                     "name": "variants",
                     "type": "variant_def[]$"
+                },
+                {
+                    "name": "action_results",
+                    "type": "action_result[]$"
                 }
             ]
         }

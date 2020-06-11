@@ -31,5 +31,9 @@ error_chain! {
             description("ABIEOS Stuck in internal loop")
             display("ABIEOS Stuck in internal loop")
         }
+        ABIEOS_VARUINT_ENCODING {
+            description("Invalid VarUInt encoding")
+            display("ABIEOS Invalid VarUInt encoding")
+        }
     }
 }

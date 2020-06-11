@@ -24,7 +24,7 @@ pub struct EOSRPC {
 impl EOSRPC {
     pub fn blocking(host: String) -> Result<EOSRPC> {
         let client = reqwest::blocking::Client::new();
-        let abi_f = AbiFiles::get("abi.abi.json").unwrap();
+        let abi_f = AbiFiles::get("abi_rv.abi.json").unwrap();
         let abi_abi_js: String = String::from_utf8(abi_f.as_ref().to_vec())?;
         let transaction_abi_js: String = String::from_utf8(
             AbiFiles::get("transaction.abi.json")
@@ -146,8 +146,8 @@ impl EOSRPC {
         abieos_eosio: &ABIEOS,
         account_name: &str,
     ) -> Result<ABIEOS> {
-        let rawabi = self.get_raw_abi(account_name)?;
-        let account_abi = rawabi.decode_abi()?;
+        let rawabi_r = self.get_raw_abi(account_name);
+        let account_abi = rawabi_r?.decode_abi()?;
 
         let account_abi_json = abieos_eosio.bin_to_json("eosio", "abi_def", &account_abi)?;
         Ok(ABIEOS::new_with_abi(account_name, &account_abi_json)?)
@@ -360,7 +360,8 @@ mod test {
     use std::fs;
 
     const TEST_HOST: &str = "http://127.0.0.1:8888";
-    // const TEST_HOST: &str = "https://api.testnet.eos.io";
+    //const TEST_HOST: &str = "http://tempest.local:8888";
+    //const TEST_HOST: &str = "https://api.testnet.eos.io";
     const TEST_KEOSD: &str = "http://127.0.0.1:3888";
 
     const TEST_WALLET_NAME: &str = "default";
@@ -503,9 +504,12 @@ mod test {
                 exp_time,
             )
             .map_err(|e| {
-                abi_trio.destroy();
+             //   abi_trio.destroy();
                 Error::with_chain(e, "blocking_push_txn/push_transaction(clear)")
-            })?;
+            });
+        if _res_clear_int.is_err() {
+            eprintln!("Ignoring error for clearing contract - {:#?}", _res_clear_int.err().unwrap())
+        }
 
         let action = create_setcode_action(&abi_trio.acct_abi, &name, &wasm).map_err(|e| {
             abi_trio.destroy();

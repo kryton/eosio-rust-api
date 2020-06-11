@@ -20,7 +20,7 @@ extern crate error_chain;
 use crate::errors::{Error, ErrorKind, Result};
 use std::os::raw::c_char;
 
-type ABIName = u64;
+pub type ABIName = u64;
 
 pub struct ABIEOS {
     context: *mut abieos_context,
@@ -214,6 +214,68 @@ impl ABIEOS {
         Ok(x)
     }
 }
+fn hex_to_bin_char(c: u8) -> u8 {
+    if c >= b'a' && c <= b'z' {
+        let v: u8 = (c - b'a') + 10;
+        return v;
+    }
+    if c >= b'0' && c <= b'9' {
+        let v = c - b'0';
+        return v;
+    }
+    0
+}
+
+pub fn hex_to_bin(hex:&str) -> Vec<u8> {
+    let mut bin: Vec<u8> = Vec::with_capacity(hex.len() / 2);
+    let bytes = hex.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        let b = hex_to_bin_char(bytes[i]).checked_shl(4).unwrap() + hex_to_bin_char(bytes[i + 1]);
+        i += 2;
+        bin.push(b);
+    }
+    bin
+}
+pub fn varuint32_from_bin(bin_str:&[u8]) -> Result<(u32, Vec<u8>)> {
+    let mut dest:u32 = 0;
+    let mut shift = 0;
+    let mut i =0;
+    let mut b :u8 ;
+    while {
+        if shift >= 35 {
+            return Err(ErrorKind::ABIEOS_VARUINT_ENCODING.into())
+        }
+        b = bin_str[i];
+        dest |= ((b & 0x7f) as u32).checked_shl(shift).unwrap();
+        shift += 7;
+        i += 1;
+        i < bin_str.len() && b & 0x80 !=0
+    } {
+
+    }
+
+    Ok((dest, bin_str[i .. ].to_vec()) )
+}
+pub fn varuint64_from_bin(bin_str:&[u8]) -> Result<(u64, Vec<u8>)> {
+    let mut dest:u64 = 0;
+    let mut shift = 0;
+    let mut i =0;
+    let mut b :u8 ;
+    while {
+        if shift >= 70 {
+            return Err(ErrorKind::ABIEOS_VARUINT_ENCODING.into())
+        }
+        b = bin_str[i];
+        dest |= ((b & 0x7f) as u64).checked_shl(shift).unwrap();
+        shift += 7;
+        i += 1;
+        i < bin_str.len() && b & 0x80 !=0
+    } {
+
+    }
+    Ok((dest, bin_str[i .. ].to_vec()) )
+}
 
 #[cfg(test)]
 mod test {
@@ -362,6 +424,38 @@ mod test {
 
         Ok(())
     }
+    #[test]
+    fn test_varuint32() -> Result<()> {
+        let hex_str = "b6843d0123";
+        let hex_str2 = "01002BAD64FF47";
+        let hex_str3 = "ffffffff0faa";
+        let hex_str4 = "ffffffffff0faa";
+        let bin_str = hex_to_bin(&hex_str);
+        let (val, bin_str_ex) = varuint32_from_bin(&bin_str)?;
+        assert_eq!(999990,val);
+        assert_eq!(bin_str_ex.len(),2);
+        assert_eq!(bin_str_ex[0],01);
+        assert_eq!(bin_str_ex[1],0x23);
+        let bin_str2 = hex_to_bin(&hex_str2);
+        let (val, bin_str_ex) = varuint32_from_bin(&bin_str2)?;
+        assert_eq!(1,val);
+        assert_eq!(bin_str_ex.len(),6);
+        let (val64, bin_str_ex) = varuint64_from_bin(&bin_str)?;
+        assert_eq!(999990,val64);
+        assert_eq!(bin_str_ex.len(),2);
+        assert_eq!(bin_str_ex[0],01);
+        let bin_str3 = hex_to_bin(&hex_str3);
+        let (val, _bin_str_ex) = varuint32_from_bin(&bin_str3)?;
+        assert_eq!(0xff_ff_ff_ff,val);
+        let bin_str4 = hex_to_bin(&hex_str4);
+        let v:Result<(u32,Vec<u8>)> = varuint32_from_bin(&bin_str4);
+        assert!(v.is_err());
+        let v:Result<(u64,Vec<u8>)> = varuint64_from_bin(&bin_str4);
+        assert!(v.is_ok());
+        assert_eq!(0x7f_ff_ff_ff_ff,v?.0);
+
+        Ok(())
+    }
 
     fn char_to_hex(c: &u8) -> Result<String> {
         let mut r: [u8; 2] = [0; 2];
@@ -380,4 +474,5 @@ mod test {
         }
         Ok(String::from_utf8(r.to_vec())?)
     }
+
 }

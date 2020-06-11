@@ -5,9 +5,9 @@ An API to allow Rust services to communicate with a [EOSIO](https://github.com/E
 
 ## What is it not?
 
-This is not an API to allow you to write contracts in rust. 
+This is not an API to allow you to write contracts in rust.  (see [eosio-rust](https://github.com/sagan-software/eosio-rust) for that)
 
-It interacts via the REST API so you can use it in your middleware/webapps etc to execute actions 
+This code interacts via the REST API so you can use it in your middleware/webapps etc to execute actions 
 and query the EOSIO node.
 
 ## Status
@@ -18,13 +18,13 @@ It should be able to:
  * sign things (with the help of keosd) 
  * verify keys.
  * pack/unpack abieos serialization using [abieos](https://github.com/EOSIO/abieos)
+ * 'play' [tic-tac-toe](/eosio-client-api/examples/tictactoe.rs), using the popular EOSIO TTT Contract.
 
 I am also new to Rust. Feel free to raise issues on style/technique/idiomatic issues. I'm here to learn.
 
-and yes. I've been told '_I code pretty well for a manager_' before.
 
 ## Build notes
 
 `$ git submodule update --init --recursive`
 
-you also need to apply the patch to abieos to enable it to create a static C library PR#51.
+this currently uses a forked version of [abieos](https://github.com/kryton/abieos) due to some json parsing differences.

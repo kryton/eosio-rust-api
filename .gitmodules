@@ -1,3 +1,4 @@
 [submodule "abieos"]
 	path = libabieos-sys/lib/abieos
 	url = git@github.com:kryton/abieos.git
+	branch = rust_serde_mods

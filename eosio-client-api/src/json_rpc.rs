@@ -87,7 +87,8 @@ impl EOSRPC {
     }
 
     pub fn get_info(&self) -> Result<GetInfo> {
-        let value = serde_json::json!({ "greg": "the stop sign" });
+        let value = serde_json::json!({ });
+
 
         let res = self.blocking_req("/v1/chain/get_info", value)?;
         let ga: GetInfo = serde_json::from_str(&res).unwrap();
@@ -359,8 +360,8 @@ mod test {
     use chrono::{Duration, NaiveDateTime};
     use std::fs;
 
-    const TEST_HOST: &str = "http://127.0.0.1:8888";
-    //const TEST_HOST: &str = "http://tempest.local:8888";
+    //const TEST_HOST: &str = "http://127.0.0.1:8888";
+    const TEST_HOST: &str = "http://tempest.local:8888";
     //const TEST_HOST: &str = "https://api.testnet.eos.io";
     const TEST_KEOSD: &str = "http://127.0.0.1:3888";
 

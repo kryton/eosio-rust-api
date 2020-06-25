@@ -361,8 +361,8 @@ mod test {
     use std::fs;
 
     //const TEST_HOST: &str = "http://127.0.0.1:8888";
-    const TEST_HOST: &str = "http://tempest.local:8888";
-    //const TEST_HOST: &str = "https://api.testnet.eos.io";
+    //const TEST_HOST: &str = "http://tempest.local:8888";
+    const TEST_HOST: &str = "https://api.testnet.eos.io";
     const TEST_KEOSD: &str = "http://127.0.0.1:3888";
 
     const TEST_WALLET_NAME: &str = "default";

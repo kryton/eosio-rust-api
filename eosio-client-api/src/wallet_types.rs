@@ -41,14 +41,14 @@ impl Wallet {
         }
     }
     pub fn list(&self) -> Result<Vec<String>> {
-        let value = serde_json::json!({ "cookie": "monster" });
+        let value = serde_json::json!({  });
         let res = self.keos.blocking_req("/v1/wallet/list_wallets", value)?;
         let list: Vec<String> = serde_json::from_str(&res).unwrap();
 
         Ok(list)
     }
     pub fn keys(&self) -> Result<Vec<EOSPublicKey>> {
-        let value = serde_json::json!({ "cookie": "monster" });
+        let value = serde_json::json!({  });
         let res = self
             .keos
             .blocking_req("/v1/wallet/get_public_keys", value)?;

@@ -1,6 +1,6 @@
 [package]
 name="eosio-client"
-version="0.1.2"
+version="0.1.3"
 authors = ["Ian Holsman <ian@holsman.com.au>"]
 edition = "2018"
 license = "Apache-2.0"
@@ -22,6 +22,6 @@ exclude = [
 ]
 
 [dependencies]
-eosio-client-api= {path = "eosio-client-api", version="0.1.4"}
+eosio-client-api= {path = "eosio-client-api", version="0.1.5"}
 eosio-client-keys = {path = "eosio-client-keys", version="0.1.0"}
 error-chain = "0.12.2"

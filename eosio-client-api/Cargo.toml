@@ -29,4 +29,4 @@ chrono="0.4.11"
 tokio = { version="0.2.21", features=["rt-threaded", "macros"] }
 
 [dev-dependencies]
-tokio-test = "*"
+tokio-test = "0.2.1"

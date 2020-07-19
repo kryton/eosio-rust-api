@@ -226,7 +226,7 @@ fn hex_to_bin_char(c: u8) -> u8 {
     0
 }
 
-pub fn hex_to_bin(hex:&str) -> Vec<u8> {
+pub fn hex_to_bin(hex: &str) -> Vec<u8> {
     let mut bin: Vec<u8> = Vec::with_capacity(hex.len() / 2);
     let bytes = hex.as_bytes();
     let mut i = 0;
@@ -237,44 +237,40 @@ pub fn hex_to_bin(hex:&str) -> Vec<u8> {
     }
     bin
 }
-pub fn varuint32_from_bin(bin_str:&[u8]) -> Result<(u32, Vec<u8>)> {
-    let mut dest:u32 = 0;
+pub fn varuint32_from_bin(bin_str: &[u8]) -> Result<(u32, Vec<u8>)> {
+    let mut dest: u32 = 0;
     let mut shift = 0;
-    let mut i =0;
-    let mut b :u8 ;
+    let mut i = 0;
+    let mut b: u8;
     while {
         if shift >= 35 {
-            return Err(ErrorKind::ABIEOS_VARUINT_ENCODING.into())
+            return Err(ErrorKind::ABIEOS_VARUINT_ENCODING.into());
         }
         b = bin_str[i];
         dest |= ((b & 0x7f) as u32).checked_shl(shift).unwrap();
         shift += 7;
         i += 1;
-        i < bin_str.len() && b & 0x80 !=0
-    } {
+        i < bin_str.len() && b & 0x80 != 0
+    } {}
 
-    }
-
-    Ok((dest, bin_str[i .. ].to_vec()) )
+    Ok((dest, bin_str[i..].to_vec()))
 }
-pub fn varuint64_from_bin(bin_str:&[u8]) -> Result<(u64, Vec<u8>)> {
-    let mut dest:u64 = 0;
+pub fn varuint64_from_bin(bin_str: &[u8]) -> Result<(u64, Vec<u8>)> {
+    let mut dest: u64 = 0;
     let mut shift = 0;
-    let mut i =0;
-    let mut b :u8 ;
+    let mut i = 0;
+    let mut b: u8;
     while {
         if shift >= 70 {
-            return Err(ErrorKind::ABIEOS_VARUINT_ENCODING.into())
+            return Err(ErrorKind::ABIEOS_VARUINT_ENCODING.into());
         }
         b = bin_str[i];
         dest |= ((b & 0x7f) as u64).checked_shl(shift).unwrap();
         shift += 7;
         i += 1;
-        i < bin_str.len() && b & 0x80 !=0
-    } {
-
-    }
-    Ok((dest, bin_str[i .. ].to_vec()) )
+        i < bin_str.len() && b & 0x80 != 0
+    } {}
+    Ok((dest, bin_str[i..].to_vec()))
 }
 
 pub mod eosio_datetime_format {
@@ -292,8 +288,8 @@ pub mod eosio_datetime_format {
     // although it may also be generic over the input types T.
     #[allow(dead_code)]
     pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         let s = format!("{}", date.format(FORMAT));
         serializer.serialize_str(&s)
@@ -307,8 +303,8 @@ pub mod eosio_datetime_format {
     //
     // although it may also be generic over the output types T.
     pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         let s: String = String::deserialize(deserializer)?;
         let len = s.len();
@@ -484,27 +480,27 @@ mod test {
         let hex_str4 = "ffffffffff0faa";
         let bin_str = hex_to_bin(&hex_str);
         let (val, bin_str_ex) = varuint32_from_bin(&bin_str)?;
-        assert_eq!(999990,val);
-        assert_eq!(bin_str_ex.len(),2);
-        assert_eq!(bin_str_ex[0],01);
-        assert_eq!(bin_str_ex[1],0x23);
+        assert_eq!(999990, val);
+        assert_eq!(bin_str_ex.len(), 2);
+        assert_eq!(bin_str_ex[0], 01);
+        assert_eq!(bin_str_ex[1], 0x23);
         let bin_str2 = hex_to_bin(&hex_str2);
         let (val, bin_str_ex) = varuint32_from_bin(&bin_str2)?;
-        assert_eq!(1,val);
-        assert_eq!(bin_str_ex.len(),6);
+        assert_eq!(1, val);
+        assert_eq!(bin_str_ex.len(), 6);
         let (val64, bin_str_ex) = varuint64_from_bin(&bin_str)?;
-        assert_eq!(999990,val64);
-        assert_eq!(bin_str_ex.len(),2);
-        assert_eq!(bin_str_ex[0],01);
+        assert_eq!(999990, val64);
+        assert_eq!(bin_str_ex.len(), 2);
+        assert_eq!(bin_str_ex[0], 01);
         let bin_str3 = hex_to_bin(&hex_str3);
         let (val, _bin_str_ex) = varuint32_from_bin(&bin_str3)?;
-        assert_eq!(0xff_ff_ff_ff,val);
+        assert_eq!(0xff_ff_ff_ff, val);
         let bin_str4 = hex_to_bin(&hex_str4);
-        let v:Result<(u32,Vec<u8>)> = varuint32_from_bin(&bin_str4);
+        let v: Result<(u32, Vec<u8>)> = varuint32_from_bin(&bin_str4);
         assert!(v.is_err());
-        let v:Result<(u64,Vec<u8>)> = varuint64_from_bin(&bin_str4);
+        let v: Result<(u64, Vec<u8>)> = varuint64_from_bin(&bin_str4);
         assert!(v.is_ok());
-        assert_eq!(0x7f_ff_ff_ff_ff,v?.0);
+        assert_eq!(0x7f_ff_ff_ff_ff, v?.0);
 
         Ok(())
     }
@@ -526,5 +522,4 @@ mod test {
         }
         Ok(String::from_utf8(r.to_vec())?)
     }
-
 }

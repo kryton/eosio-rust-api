@@ -27,7 +27,7 @@ use std::{env, fs};
 //use serde_json::Value;
 use serde_json::json;
 
-fn upgrade_wasm(
+async fn upgrade_wasm(
     wallet: &Wallet,
     eos: &EOSRPC,
     wasm: &WASM,
@@ -37,12 +37,12 @@ fn upgrade_wasm(
 ) -> Result<()> {
     let hash = wasm.hash();
     let hash_str = vec_u8_to_hex(&hash)?;
-    let stored_hash = eos.get_code_hash(account)?;
+    let stored_hash = eos.get_code_hash(account).await?;
 
     if stored_hash.code_hash != hash_str {
         //  let _eosio_raw = eos.get_raw_abi("eosio")?.decode_abi()?;
         let exp_time = info.set_exp_time(Duration::seconds(3600));
-        let abi_trio = AbiTrio::create("eosio", "eosio", &eos)?;
+        let abi_trio = AbiTrio::create("eosio", "eosio", &eos).await?;
         let action_code =
             create_setcode_action(&abi_trio.acct_abi, account, wasm).map_err(|e| {
                 abi_trio.destroy();
@@ -65,6 +65,7 @@ fn upgrade_wasm(
                 &info.head_block_id,
                 exp_time,
             )
+            .await
             .map_err(|e| {
                 abi_trio.destroy();
                 Error::with_chain(e, "upgrade_wasm/push_transaction")
@@ -168,16 +169,16 @@ pub fn move_game_action(
     })
 }
 
-fn start_game(
+async fn start_game(
     wallet: &Wallet,
     eos: &EOSRPC,
     game_acct: &str,
     player_host: &str,
     player_challenger: &str,
 ) -> Result<(usize, String)> {
-    let info = eos.get_info()?;
+    let info = eos.get_info().await?;
     let exp_time = info.set_exp_time(Duration::seconds(3600));
-    let abi_trio: AbiTrio = AbiTrio::create("eosio", game_acct, eos)?;
+    let abi_trio: AbiTrio = AbiTrio::create("eosio", game_acct, eos).await?;
     let ca = create_game_action(
         &abi_trio.acct_abi,
         game_acct,
@@ -196,6 +197,7 @@ fn start_game(
             &info.head_block_id,
             exp_time,
         )
+        .await
         .map_err(|e| {
             abi_trio.destroy();
             Error::with_chain(e, "start_game/push_transaction")
@@ -204,16 +206,16 @@ fn start_game(
     Ok((tr.processed.block_num, tr.transaction_id))
 }
 
-fn end_game(
+async fn end_game(
     wallet: &Wallet,
     eos: &EOSRPC,
     game_acct: &str,
     player_host: &str,
     player_challenger: &str,
 ) -> Result<(usize, String)> {
-    let info = eos.get_info()?;
+    let info = eos.get_info().await?;
     let exp_time = info.set_exp_time(Duration::seconds(3600));
-    let abi_trio: AbiTrio = AbiTrio::create("eosio", game_acct, eos)?;
+    let abi_trio: AbiTrio = AbiTrio::create("eosio", game_acct, eos).await?;
     let ca = close_game_action(
         &abi_trio.acct_abi,
         game_acct,
@@ -232,6 +234,7 @@ fn end_game(
             &info.head_block_id,
             exp_time,
         )
+        .await
         .map_err(|e| {
             abi_trio.destroy();
             Error::with_chain(e, "end_game/push_transaction")
@@ -240,7 +243,7 @@ fn end_game(
     Ok((tr.processed.block_num, tr.transaction_id))
 }
 
-fn move_game(
+async fn move_game(
     wallet: &Wallet,
     eos: &EOSRPC,
     game_acct: &str,
@@ -250,9 +253,9 @@ fn move_game(
     row: u16,
     col: u16,
 ) -> Result<(usize, String)> {
-    let info = eos.get_info()?;
+    let info = eos.get_info().await?;
     let exp_time = info.set_exp_time(Duration::seconds(3600));
-    let abi_trio: AbiTrio = AbiTrio::create("eosio", game_acct, eos)?;
+    let abi_trio: AbiTrio = AbiTrio::create("eosio", game_acct, eos).await?;
     let ca = move_game_action(
         &abi_trio.acct_abi,
         game_acct,
@@ -274,6 +277,7 @@ fn move_game(
             &info.head_block_id,
             exp_time,
         )
+        .await
         .map_err(|e| {
             abi_trio.destroy();
             Error::with_chain(e, "move_game/push_transaction")
@@ -282,23 +286,25 @@ fn move_game(
     Ok((tr.processed.block_num, tr.transaction_id))
 }
 
-fn get_board(eos: &EOSRPC, game_acct: &str) -> Result<()> {
-    let abi_trio: AbiTrio = AbiTrio::create("eosio", game_acct, eos)?;
+async fn get_board(eos: &EOSRPC, game_acct: &str) -> Result<()> {
+    let abi_trio: AbiTrio = AbiTrio::create("eosio", game_acct, eos).await?;
 
-    let tr = eos.get_table_rows(
-        &game_acct,
-        "tictactoe",
-        "games",
-        "",
-        "",
-        "",
-        10,
-        "",
-        "",
-        "dec",
-        false,
-        true,
-    )?;
+    let tr = eos
+        .get_table_rows(
+            &game_acct,
+            "tictactoe",
+            "games",
+            "",
+            "",
+            "",
+            10,
+            "",
+            "",
+            "dec",
+            false,
+            true,
+        )
+        .await?;
     for row in tr.rows {
         let data = row.data;
 
@@ -357,24 +363,26 @@ fn get_args() -> Result<(String, String, String, String, String)> {
     ))
 }
 
-fn run() -> Result<bool> {
+async fn run() -> Result<bool> {
     let (host, wallet_url, account, player_host, player_challenger) = get_args()?;
-    let eos = EOSRPC::blocking(String::from(host))?;
-    let info = eos.get_info()?;
-    let wallet =
-        Wallet::create_with_chain_id(EOSRPC::blocking(String::from(wallet_url))?, &info.chain_id);
+    let eos = EOSRPC::non_blocking(String::from(host)).await?;
+    let info = eos.get_info().await?;
+    let wallet = Wallet::create_with_chain_id(
+        EOSRPC::non_blocking(String::from(wallet_url)).await?,
+        &info.chain_id,
+    );
     let wallet_pass = get_wallet_pass()?;
 
     let ttt_wasm: WASM = WASM::read_file("examples/tictactoe.wasm")?;
     let ttt_abi = fs::read_to_string("examples/tictactoe.abi")?;
 
-    wallet.unlock("default", &wallet_pass)?;
-    upgrade_wasm(&wallet, &eos, &ttt_wasm, &ttt_abi, &account, &info)?;
+    wallet.unlock("default", &wallet_pass).await?;
+    upgrade_wasm(&wallet, &eos, &ttt_wasm, &ttt_abi, &account, &info).await?;
 
     // clears a game if there way one
     let _trans_end = end_game(&wallet, &eos, &account, &player_host, &player_challenger);
 
-    let trans_start = start_game(&wallet, &eos, &account, &player_host, &player_challenger)?;
+    let trans_start = start_game(&wallet, &eos, &account, &player_host, &player_challenger).await?;
     println!("Started {:?}", trans_start);
 
     let moves = vec![
@@ -395,21 +403,23 @@ fn run() -> Result<bool> {
             &g_move.0,
             g_move.1,
             g_move.2,
-        )?;
+        )
+        .await?;
         println!("Move {} {:?}", &g_move.0, trans_move);
-        get_board(&eos, &account)?;
+        get_board(&eos, &account).await?;
     }
     // get_board(&eos,&account)?;
-    let trans_end = end_game(&wallet, &eos, &account, &player_host, &player_challenger)?;
+    let trans_end = end_game(&wallet, &eos, &account, &player_host, &player_challenger).await?;
     println!("Ended {:?}", trans_end);
 
     Ok(true)
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     println!("This example uploads the tic-tac-toe wasm, and pushes actions on it");
     println!("It also fetches data from RAM to see the 'game'");
-    if let Err(ref e) = run() {
+    if let Err(ref e) = run().await {
         println!("error: {}", e);
 
         for e in e.iter().skip(1) {

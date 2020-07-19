@@ -4,8 +4,8 @@ use crate::wallet_types::Wallet;
 use crate::wasm::WASM;
 use eosio_client_keys::EOSPublicKey;
 use libabieos_sys::{AbiFiles, ABIEOS};
-use reqwest::blocking::Client;
 use reqwest::header::{HeaderValue, CONTENT_TYPE};
+use reqwest::Client;
 use reqwest::StatusCode;
 use serde_json::Value;
 //use rust_embed::RustEmbed;
@@ -22,8 +22,8 @@ pub struct EOSRPC {
 }
 
 impl EOSRPC {
-    pub fn blocking(host: String) -> Result<EOSRPC> {
-        let client = reqwest::blocking::Client::new();
+    pub async fn non_blocking(host: String) -> Result<EOSRPC> {
+        let client = reqwest::Client::new();
         let abi_f = AbiFiles::get("abi_rv.abi.json").unwrap();
         let abi_abi_js: String = String::from_utf8(abi_f.as_ref().to_vec())?;
         let transaction_abi_js: String = String::from_utf8(
@@ -40,8 +40,12 @@ impl EOSRPC {
         })
     }
 
-    pub fn blocking_ex(host: String, abi_abi_js: &str, transaction_abi_js: &str) -> EOSRPC {
-        let client = reqwest::blocking::Client::new();
+    pub async fn non_blocking_ex(
+        host: String,
+        abi_abi_js: &str,
+        transaction_abi_js: &str,
+    ) -> EOSRPC {
+        let client = reqwest::Client::new();
         EOSRPC {
             client,
             host,
@@ -50,10 +54,10 @@ impl EOSRPC {
         }
     }
 
-    pub fn blocking_req(&self, url: &str, in_json: Value) -> Result<String> {
+    pub async fn non_blocking_req(&self, url: &str, in_json: Value) -> Result<String> {
         let full_url = [&self.host, url].concat();
         let req = self.client.post(&full_url).json(&in_json);
-        let response = req.send()?;
+        let response = req.send().await?;
         let content_type = response.headers().get(CONTENT_TYPE).unwrap();
         let hv_json = HeaderValue::from_static("application/json");
         if content_type != hv_json {
@@ -65,67 +69,70 @@ impl EOSRPC {
             || status == StatusCode::CREATED
             || status == StatusCode::ACCEPTED
         {
-            Ok(response.text()?)
+            Ok(response.text().await?)
         } else {
-            let tx: &str = &response.text()?;
+            let tx: &str = &response.text().await?;
             let msg: ErrorReply = serde_json::from_str(tx).unwrap();
             Err(ErrorKind::InvalidResponseStatus(msg.error).into())
         }
     }
 
-    pub fn get_account(&self, account_name: &str) -> Result<GetAccount> {
+    pub async fn get_account(&self, account_name: &str) -> Result<GetAccount> {
         let value = serde_json::json!({ "account_name": account_name });
-        let res = self.blocking_req("/v1/chain/get_account", value)?;
+        let res = self
+            .non_blocking_req("/v1/chain/get_account", value)
+            .await?;
         let ga: GetAccount = serde_json::from_str(&res).unwrap();
         Ok(ga)
     }
-    pub fn get_abi(&self, account_name: &str) -> Result<GetAbi> {
+    pub async fn get_abi(&self, account_name: &str) -> Result<GetAbi> {
         let value = serde_json::json!({ "account_name": account_name });
-        let res = self.blocking_req("/v1/chain/get_abi", value)?;
+        let res = self.non_blocking_req("/v1/chain/get_abi", value).await?;
         let ga: GetAbi = serde_json::from_str(&res).unwrap();
         Ok(ga)
     }
 
-    pub fn get_info(&self) -> Result<GetInfo> {
-        let value = serde_json::json!({ });
-
-
-        let res = self.blocking_req("/v1/chain/get_info", value)?;
+    pub async fn get_info(&self) -> Result<GetInfo> {
+        let value = serde_json::json!({});
+        let res = self.non_blocking_req("/v1/chain/get_info", value).await?;
         let ga: GetInfo = serde_json::from_str(&res).unwrap();
         Ok(ga)
     }
 
-    pub fn get_code_hash(&self, account_name: &str) -> Result<GetCodeHash> {
+    pub async fn get_code_hash(&self, account_name: &str) -> Result<GetCodeHash> {
         let value = serde_json::json!({ "account_name": account_name });
-
-        let res = self.blocking_req("/v1/chain/get_code_hash", value)?;
+        let res = self
+            .non_blocking_req("/v1/chain/get_code_hash", value)
+            .await?;
         let gc: GetCodeHash = serde_json::from_str(&res)?;
         Ok(gc)
     }
 
-    pub fn get_raw_abi(&self, account_name: &str) -> Result<GetRawABI> {
+    pub async fn get_raw_abi(&self, account_name: &str) -> Result<GetRawABI> {
         let value = serde_json::json!({ "account_name": account_name });
 
-        let res = self.blocking_req("/v1/chain/get_raw_abi", value)?;
+        let res = self
+            .non_blocking_req("/v1/chain/get_raw_abi", value)
+            .await?;
         let gr: GetRawABI = serde_json::from_str(&res)?;
         Ok(gr)
     }
-    pub fn get_block_num(&self, block_num: usize) -> Result<GetBlock> {
+    pub async fn get_block_num(&self, block_num: usize) -> Result<GetBlock> {
         let value = serde_json::json!({ "block_num_or_id": block_num });
 
-        let res = self.blocking_req("/v1/chain/get_block", value)?;
+        let res = self.non_blocking_req("/v1/chain/get_block", value).await?;
         let gb: GetBlock = serde_json::from_str(&res)?;
         Ok(gb)
     }
-    pub fn get_block_id(&self, block_id: &str) -> Result<GetBlock> {
+    pub async fn get_block_id(&self, block_id: &str) -> Result<GetBlock> {
         let value = serde_json::json!({ "block_num_or_id": block_id });
 
-        let res = self.blocking_req("/v1/chain/get_block", value)?;
+        let res = self.non_blocking_req("/v1/chain/get_block", value).await?;
         let gb: GetBlock = serde_json::from_str(&res)?;
         Ok(gb)
     }
 
-    pub fn get_required_keys(
+    pub async fn get_required_keys(
         &self,
         transaction: &TransactionIn,
         keys: Vec<EOSPublicKey>,
@@ -137,24 +144,26 @@ impl EOSRPC {
         }
 
         let value = serde_json::json!({ "transaction": transaction, "available_keys":key_str});
-        let res = self.blocking_req("/v1/chain/get_required_keys", value)?;
+        let res = self
+            .non_blocking_req("/v1/chain/get_required_keys", value)
+            .await?;
         let rk: RequiredKeys = serde_json::from_str(&res).unwrap();
         Ok(rk)
     }
 
-    pub fn get_abi_from_account(
+    pub async fn get_abi_from_account(
         &self,
         abieos_eosio: &ABIEOS,
         account_name: &str,
     ) -> Result<ABIEOS> {
-        let rawabi_r = self.get_raw_abi(account_name);
+        let rawabi_r = self.get_raw_abi(account_name).await;
         let account_abi = rawabi_r?.decode_abi()?;
 
         let account_abi_json = abieos_eosio.bin_to_json("eosio", "abi_def", &account_abi)?;
         Ok(ABIEOS::new_with_abi(account_name, &account_abi_json)?)
     }
 
-    pub fn push_transaction(
+    pub async fn push_transaction(
         &self,
         abieos: &ABIEOS,
         wallet: &Wallet,
@@ -167,12 +176,12 @@ impl EOSRPC {
         let trx_json = serde_json::to_string(&ti)?;
         let trx = abieos.json_to_hex("eosio", "transaction", &trx_json)?;
 
-        let pubkeys = wallet.keys()?;
-        let required_keys = self.get_required_keys(&ti, pubkeys)?;
+        let pubkeys = wallet.keys().await?;
+        let required_keys = self.get_required_keys(&ti, pubkeys).await?;
         let eospubs: Vec<EOSPublicKey> =
             EOSPublicKey::from_eos_strings(&required_keys.required_keys)?;
 
-        let signed_transaction = wallet.sign_transaction(ti, eospubs)?;
+        let signed_transaction = wallet.sign_transaction(ti, eospubs).await?;
         let pti = PackedTransactionIn {
             signatures: signed_transaction.signatures,
             compression: "none".to_string(),
@@ -181,12 +190,14 @@ impl EOSRPC {
         };
 
         let in_val = serde_json::json!(pti);
-        let res = self.blocking_req("/v1/chain/push_transaction", in_val)?;
+        let res = self
+            .non_blocking_req("/v1/chain/push_transaction", in_val)
+            .await?;
         let tr: TransactionResponse = serde_json::from_str(&res).unwrap();
         Ok(tr)
     }
 
-    pub fn get_table_rows(
+    pub async fn get_table_rows(
         &self,
         code: &str,
         scope: &str,
@@ -217,11 +228,13 @@ impl EOSRPC {
             show_payer,
         };
         let in_val = serde_json::json!(in_j);
-        let res = self.blocking_req("/v1/chain/get_table_rows", in_val)?;
+        let res = self
+            .non_blocking_req("/v1/chain/get_table_rows", in_val)
+            .await?;
         let tr: GetTableRows = serde_json::from_str(&res).unwrap();
         Ok(tr)
     }
-    pub fn get_table_by_scope(
+    pub async fn get_table_by_scope(
         &self,
         code: &str,
         table: &str,
@@ -239,7 +252,9 @@ impl EOSRPC {
             reverse,
         };
         let in_val = serde_json::json!(pti);
-        let res = self.blocking_req("/v1/chain/get_table_by_scope", in_val)?;
+        let res = self
+            .non_blocking_req("/v1/chain/get_table_by_scope", in_val)
+            .await?;
         let tr: GetTableByScope = serde_json::from_str(&res).unwrap();
         Ok(tr)
     }
@@ -296,7 +311,7 @@ pub struct AbiTrio {
 }
 
 impl AbiTrio {
-    pub fn create(sys_name: &str, sys_acct_name: &str, eos: &EOSRPC) -> Result<AbiTrio> {
+    pub async fn create(sys_name: &str, sys_acct_name: &str, eos: &EOSRPC) -> Result<AbiTrio> {
         let sys_abi = ABIEOS::new_with_abi(sys_name, &eos.abi_abi_js)?;
         let txn_abi: ABIEOS =
             ABIEOS::new_with_abi(sys_name, &eos.transaction_abi_js).map_err(|e| {
@@ -305,6 +320,7 @@ impl AbiTrio {
             })?;
         let acct_abi: ABIEOS = eos
             .get_abi_from_account(&sys_abi, sys_acct_name)
+            .await
             .map_err(|e| {
                 sys_abi.destroy();
                 txn_abi.destroy();
@@ -371,19 +387,19 @@ mod test {
     //const TEST_HOST: &str = "https://eos.greymass.com";
     //const TEST_HOST: &str = "https://chain.wax.io";
 
-    #[test]
-    fn blocking_req_test() -> Result<()> {
-        let eos = EOSRPC::blocking(String::from(TEST_HOST))?;
-        let _ga = eos.get_account("eosio")?;
+    #[tokio::test]
+    async fn non_blocking_req_test() -> Result<()> {
+        let eos = EOSRPC::non_blocking(String::from(TEST_HOST)).await?;
+        let _ga = eos.get_account("eosio").await?;
 
-        let _abi = eos.get_abi("eosio")?;
+        let _abi = eos.get_abi("eosio").await?;
         Ok(())
     }
 
-    #[test]
-    fn blocking_get_info() -> Result<()> {
-        let eos = EOSRPC::blocking(String::from(TEST_HOST))?;
-        let _gi = eos.get_info()?;
+    #[tokio::test]
+    async fn non_blocking_get_info() -> Result<()> {
+        let eos = EOSRPC::non_blocking(String::from(TEST_HOST)).await?;
+        let _gi = eos.get_info().await?;
         Ok(())
     }
 
@@ -401,10 +417,9 @@ mod test {
         }
     }
 
-    #[test]
-    fn blocking_get_required_keys() -> Result<()> {
-        //  let client = reqwest::blocking::Client::new();
-        let eos = EOSRPC::blocking(String::from(TEST_HOST))?;
+    #[tokio::test]
+    async fn non_blocking_get_required_keys() -> Result<()> {
+        let eos = EOSRPC::non_blocking(String::from(TEST_HOST)).await?;
         let keys = vec![
             EOSPublicKey::from_eos_string("EOS6zUgp7uAV1pCTXZMGJyH3dLUSWJUkZWGA9WpWxyP2pCT3mAkNX")
                 .unwrap(),
@@ -413,19 +428,19 @@ mod test {
             EOSPublicKey::from_eos_string("EOS8fdsPr1aKsmszNHeY4RrgupbabNQ5nmLgQWMEkTn2dENrPbRgP")
                 .unwrap(),
         ];
-        let gi: GetInfo = eos.get_info()?;
+        let gi: GetInfo = eos.get_info().await?;
         let exp_time = gi.set_exp_time(Duration::seconds(1800));
 
         let wasm = WASM::read_file("test/good-2.wasm")?;
 
         let name = TEST_ACCOUNT_NAME;
 
-        let abi_trio = AbiTrio::create("eosio", "eosio", &eos)?;
+        let abi_trio = AbiTrio::create("eosio", "eosio", &eos).await?;
         let action_r = create_setcode_action(&abi_trio.acct_abi, &name, &wasm);
         abi_trio.destroy();
 
         let ti = TransactionIn::simple(vec![action_r?], &gi.last_irreversible_block_id, exp_time)?;
-        let rk = eos.get_required_keys(&ti, keys)?;
+        let rk = eos.get_required_keys(&ti, keys).await?;
         assert!(rk.required_keys.len() > 0);
         let k = &rk.required_keys[0];
 
@@ -442,23 +457,25 @@ mod test {
     /// the TicTacToe example deletes ALL of it's data on successful completion, so can't really be
     /// used
     ///
-    #[test]
-    fn blocking_table_rows() -> Result<()> {
-        let eos = EOSRPC::blocking(String::from(TEST_HOST))?;
-        let _r = eos.get_table_rows(
-            TEST_ACCOUNT_NAME,
-            "tictactoe",
-            "games",
-            "",
-            "",
-            "",
-            10,
-            "",
-            "",
-            "dec",
-            false,
-            true,
-        );
+    #[tokio::test]
+    async fn non_blocking_table_rows() -> Result<()> {
+        let eos = EOSRPC::non_blocking(String::from(TEST_HOST)).await?;
+        let _r = eos
+            .get_table_rows(
+                TEST_ACCOUNT_NAME,
+                "tictactoe",
+                "games",
+                "",
+                "",
+                "",
+                10,
+                "",
+                "",
+                "dec",
+                false,
+                true,
+            )
+            .await;
         Ok(())
     }
 
@@ -466,30 +483,32 @@ mod test {
     /// the TicTacToe example deletes ALL of it's data on successful completion, so can't really be
     /// used
     ///
-    #[test]
-    fn blocking_table_by_scope() -> Result<()> {
-        let eos = EOSRPC::blocking(String::from(TEST_HOST))?;
-        let _r = eos.get_table_by_scope("eosio.token", "", TEST_ACCOUNT_NAME, "", 10, false);
+    #[tokio::test]
+    async fn non_blocking_table_by_scope() -> Result<()> {
+        let eos = EOSRPC::non_blocking(String::from(TEST_HOST)).await?;
+        let _r = eos
+            .get_table_by_scope("eosio.token", "", TEST_ACCOUNT_NAME, "", 10, false)
+            .await;
         Ok(())
     }
 
-    #[test]
-    fn blocking_push_txn() -> Result<()> {
-        let eos = EOSRPC::blocking(String::from(TEST_HOST))?;
+    #[tokio::test]
+    async fn blocking_push_txn() -> Result<()> {
+        let eos = EOSRPC::non_blocking(String::from(TEST_HOST)).await?;
         let wallet = Wallet::create_with_chain_id(
-            EOSRPC::blocking(String::from(TEST_KEOSD))?,
+            EOSRPC::non_blocking(String::from(TEST_KEOSD)).await?,
             EOSIO_CHAIN_ID,
         );
         let wallet_pass = get_wallet_pass()?;
-        wallet.unlock(&TEST_WALLET_NAME, &wallet_pass)?;
+        wallet.unlock(&TEST_WALLET_NAME, &wallet_pass).await?;
         let wasm = WASM::read_file("test/good-2.wasm")?;
         let wasm_abi = fs::read_to_string("test/good-2.abi")?;
 
         let name = TEST_ACCOUNT_NAME;
 
-        let gi: GetInfo = eos.get_info()?;
+        let gi: GetInfo = eos.get_info().await?;
         let exp_time = gi.set_exp_time(Duration::seconds(1800));
-        let abi_trio = AbiTrio::create("eosio", "eosio", &eos)?;
+        let abi_trio = AbiTrio::create("eosio", "eosio", &eos).await?;
 
         let action_clear = create_setcode_clear_action(&abi_trio.acct_abi, &name).map_err(|e| {
             abi_trio.destroy();
@@ -504,12 +523,16 @@ mod test {
                 &gi.head_block_id,
                 exp_time,
             )
+            .await
             .map_err(|e| {
-             //   abi_trio.destroy();
+                //   abi_trio.destroy();
                 Error::with_chain(e, "blocking_push_txn/push_transaction(clear)")
             });
         if _res_clear_int.is_err() {
-            eprintln!("Ignoring error for clearing contract - {:#?}", _res_clear_int.err().unwrap())
+            eprintln!(
+                "Ignoring error for clearing contract - {:#?}",
+                _res_clear_int.err().unwrap()
+            )
         }
 
         let action = create_setcode_action(&abi_trio.acct_abi, &name, &wasm).map_err(|e| {
@@ -532,6 +555,7 @@ mod test {
                 &gi.head_block_id,
                 exp_time,
             )
+            .await
             .map_err(|e| {
                 abi_trio.destroy();
                 Error::with_chain(e, "blocking_push_txn/push_transaction(set-code/abi)")
@@ -541,29 +565,29 @@ mod test {
         Ok(())
     }
 
-    #[test]
-    fn blocking_get_raw_abi() -> Result<()> {
-        let eos = EOSRPC::blocking(String::from(TEST_HOST))?;
-        let _res = eos.get_raw_abi("eosio")?;
+    #[tokio::test]
+    async fn non_blocking_get_raw_abi() -> Result<()> {
+        let eos = EOSRPC::non_blocking(String::from(TEST_HOST)).await?;
+        let _res = eos.get_raw_abi("eosio").await?;
 
         Ok(())
     }
 
-    #[test]
-    fn blocking_getsetabi() -> Result<()> {
-        let eos = EOSRPC::blocking(String::from(TEST_HOST))?;
+    #[tokio::test]
+    async fn non_blocking_getsetabi() -> Result<()> {
+        let eos = EOSRPC::non_blocking(String::from(TEST_HOST)).await?;
         let wasm_abi = fs::read_to_string("test/good-2.abi")?;
         let wallet = Wallet::create_with_chain_id(
-            EOSRPC::blocking(String::from(TEST_KEOSD))?,
+            EOSRPC::non_blocking(String::from(TEST_KEOSD)).await?,
             EOSIO_CHAIN_ID,
         );
         let wallet_pass = get_wallet_pass()?;
-        wallet.unlock(&TEST_WALLET_NAME, &wallet_pass)?;
-        let gi = eos.get_info()?;
+        wallet.unlock(&TEST_WALLET_NAME, &wallet_pass).await?;
+        let gi = eos.get_info().await?;
         let exp_time = gi.set_exp_time(Duration::seconds(1800));
 
         let name = TEST_ACCOUNT_NAME;
-        let trio = AbiTrio::create("eosio", "eosio", &eos)?;
+        let trio = AbiTrio::create("eosio", "eosio", &eos).await?;
 
         let action_abi = create_setabi_action(&trio.sys_abi, &trio.acct_abi, &name, &wasm_abi)
             .map_err(|e| {
@@ -579,6 +603,7 @@ mod test {
                 &gi.head_block_id,
                 exp_time,
             )
+            .await
             .map_err(|e| {
                 trio.destroy();
                 Error::with_chain(e, "push_transaction")
@@ -586,16 +611,16 @@ mod test {
         trio.destroy();
 
         // if the abi is written incorrectly this will cause a server error
-        let _get_abi = eos.get_abi(name)?;
+        let _get_abi = eos.get_abi(name).await?;
 
         Ok(())
     }
 
-    #[test]
-    fn block_getblock() -> Result<()> {
-        let eos = EOSRPC::blocking(String::from(TEST_HOST))?;
-        let block = eos.get_block_num(1)?;
-        let block2 = eos.get_block_id(&block.id)?;
+    #[tokio::test]
+    async fn non_block_getblock() -> Result<()> {
+        let eos = EOSRPC::non_blocking(String::from(TEST_HOST)).await?;
+        let block = eos.get_block_num(1).await?;
+        let block2 = eos.get_block_id(&block.id).await?;
         assert_eq!(block.block_num, block2.block_num);
         Ok(())
     }

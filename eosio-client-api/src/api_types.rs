@@ -1,6 +1,6 @@
 use crate::errors::Result;
 use chrono::{DateTime, Duration, Utc};
-use libabieos_sys::{ABIEOS, eosio_datetime_format};
+use libabieos_sys::{eosio_datetime_format, ABIEOS};
 use serde::{Deserialize, Serialize};
 
 fn byte_to_char(x: u8) -> char {

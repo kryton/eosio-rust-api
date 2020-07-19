@@ -6,13 +6,12 @@
 // #[macro_use]
 extern crate error_chain;
 mod errors;
-//use crate::errors::{ErrorKind, Result};
 
 use crate::errors::Result;
 use eosio_client_api::json_rpc::EOSRPC;
 use std::env;
 
-fn run() -> Result<bool> {
+async fn run() -> Result<bool> {
     //    use std::fs::File;
     let args: Vec<String> = env::args().collect();
     let host = {
@@ -22,16 +21,16 @@ fn run() -> Result<bool> {
             "https://api.testnet.eos.io"
         }
     };
-    let eos = EOSRPC::blocking(String::from(host))?;
-    let gi = eos.get_info()?;
+    let eos = EOSRPC::non_blocking(String::from(host)).await?;
+    let gi = eos.get_info().await?;
     eprintln!("{:#?}", gi);
 
     Ok(true)
 }
-
-fn main() {
+#[tokio::main]
+async fn main() {
     eprintln!("This is non-operational. need eosio-client-api to be semi-operational first");
-    if let Err(ref e) = run() {
+    if let Err(ref e) = run().await {
         println!("error: {}", e);
 
         for e in e.iter().skip(1) {

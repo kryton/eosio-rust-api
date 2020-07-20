@@ -1,6 +1,6 @@
 [package]
 name = "eosio-client-api"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Ian Holsman <ian@holsman.com.au>"]
 edition = "2018"
 license = "Apache-2.0"
@@ -18,14 +18,14 @@ eosio-client-keys = { path = "../eosio-client-keys", version="0.1.0"}
 libabieos-sys = { path = "../libabieos-sys" , version="0.3"}
 lazy_static = "1.4.0"
 bs58 = "0.3.1"
-base64 = "0.12.1"
+base64 = "0.12.3"
 ripemd160 = "0.8.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 base64-serde = "0.5.1"
 reqwest={ version = "0.10.6", features = [ "json" ] }
 error-chain = "0.12.2"
-chrono="0.4.11"
+chrono="0.4"
 tokio = { version="0.2.21", features=["rt-threaded", "macros"] }
 
 [dev-dependencies]

@@ -18,157 +18,157 @@ pub fn vec_u8_to_hex(out: &[u8]) -> Result<String> {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResourceLimit {
-    max: isize,
-    available: isize,
-    used: isize,
+    pub max: isize,
+    pub available: isize,
+    pub used: isize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Key {
-    key: String,
-    weight: isize,
+    pub key: String,
+    pub weight: isize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Permission {
-    permission: String,
-    actor: String,
+    pub permission: String,
+    pub actor: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Account {
-    weight: isize,
-    permission: Permission,
+    pub weight: isize,
+    pub permission: Permission,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RequiredAuth {
-    waits: Vec<String>,
-    threshold: isize,
-    accounts: Vec<Account>,
-    keys: Vec<Key>,
+    pub waits: Vec<String>,
+    pub threshold: isize,
+    pub accounts: Vec<Account>,
+    pub keys: Vec<Key>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Permissions {
-    parent: String,
-    perm_name: String,
-    required_auth: RequiredAuth,
+    pub parent: String,
+    pub perm_name: String,
+    pub required_auth: RequiredAuth,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VoterInfo {
-    producers: Vec<String>,
-    is_proxy: isize,
-    owner: String,
+    pub producers: Vec<String>,
+    pub is_proxy: isize,
+    pub owner: String,
     // staked: usize, Wax holds this as a string, EOS is a usize
-    proxy: String,
-    flags1: isize,
+    pub proxy: String,
+    pub flags1: isize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetAccount {
-    account_name: String,
-    head_block_num: usize,
-    privileged: bool,
+    pub account_name: String,
+    pub head_block_num: usize,
+    pub privileged: bool,
     #[serde(with = "eosio_datetime_format")]
-    last_code_update: DateTime<Utc>,
+    pub last_code_update: DateTime<Utc>,
     #[serde(with = "eosio_datetime_format")]
-    head_block_time: DateTime<Utc>,
+    pub head_block_time: DateTime<Utc>,
     #[serde(with = "eosio_datetime_format")]
-    created: DateTime<Utc>,
-    core_liquid_balance: Option<String>,
-    ram_quota: isize,
-    net_weight: isize,
-    cpu_weight: isize,
-    ram_usage: usize,
-    cpu_limit: ResourceLimit,
-    net_limit: ResourceLimit,
-    voter_info: Option<VoterInfo>,
-    refund_request: Option<String>,
-    permissions: Vec<Permissions>,
+    pub created: DateTime<Utc>,
+    pub core_liquid_balance: Option<String>,
+    pub ram_quota: isize,
+    pub net_weight: isize,
+    pub cpu_weight: isize,
+    pub ram_usage: usize,
+    pub cpu_limit: ResourceLimit,
+    pub net_limit: ResourceLimit,
+    pub voter_info: Option<VoterInfo>,
+    pub refund_request: Option<String>,
+    pub permissions: Vec<Permissions>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AbiTypes {
-    new_type_name: String,
+    pub new_type_name: String,
     #[serde(rename = "type")]
-    abi_type: String,
+    pub abi_type: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AbiField {
-    name: String,
+    pub name: String,
     #[serde(rename = "type")]
-    abi_type: String,
+    pub abi_type: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AbiStruct {
-    name: String,
-    base: String,
-    fields: Vec<AbiField>,
+    pub name: String,
+    pub base: String,
+    pub fields: Vec<AbiField>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AbiAction {
-    name: String,
+    pub name: String,
     #[serde(rename = "type")]
-    abi_type: String,
-    ricardian_contract: String,
+    pub abi_type: String,
+    pub ricardian_contract: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AbiTable {
-    name: String,
+    pub name: String,
     #[serde(rename = "type")]
-    abi_type: String,
-    index_type: String,
-    key_names: Vec<String>,
-    key_types: Vec<String>,
+    pub abi_type: String,
+    pub index_type: String,
+    pub key_names: Vec<String>,
+    pub key_types: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AbiRicardianClauses {
-    id: String,
-    body: String,
+    pub id: String,
+    pub body: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AbiErrorMessages {
-    error_code: String,
-    error_msg: String,
+    pub error_code: String,
+    pub error_msg: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AbiExtensions {
-    tag: String,
-    value: String,
+    pub tag: String,
+    pub value: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AbiVariants {
-    name: String,
-    typea: Vec<String>,
+    pub name: String,
+    pub types: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Abi {
-    version: String,
-    types: Vec<AbiTypes>,
-    structs: Vec<AbiStruct>,
-    actions: Vec<AbiAction>,
-    tables: Vec<AbiTable>,
-    ricardian_clauses: Vec<AbiRicardianClauses>,
-    error_messages: Vec<AbiErrorMessages>,
-    abi_extensions: Vec<AbiExtensions>,
-    variants: Vec<AbiVariants>,
+    pub version: String,
+    pub types: Vec<AbiTypes>,
+    pub structs: Vec<AbiStruct>,
+    pub actions: Vec<AbiAction>,
+    pub tables: Vec<AbiTable>,
+    pub ricardian_clauses: Vec<AbiRicardianClauses>,
+    pub error_messages: Vec<AbiErrorMessages>,
+    pub abi_extensions: Vec<AbiExtensions>,
+    pub variants: Vec<AbiVariants>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetAbi {
-    account_name: String,
-    abi: Abi,
+    pub account_name: String,
+    pub abi: Abi,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -186,15 +186,15 @@ pub struct GetInfo {
     pub head_block_id: String,
     #[serde(with = "eosio_datetime_format")]
     pub head_block_time: DateTime<Utc>,
-    head_block_producer: String,
-    virtual_block_cpu_limit: usize,
-    virtual_block_net_limit: usize,
-    block_cpu_limit: usize,
-    block_net_limit: usize,
-    server_version_string: String,
-    fork_db_head_block_num: usize,
-    fork_db_head_block_id: String,
-    server_full_version_string: Option<String>,
+    pub head_block_producer: String,
+    pub virtual_block_cpu_limit: usize,
+    pub virtual_block_net_limit: usize,
+    pub block_cpu_limit: usize,
+    pub block_net_limit: usize,
+    pub server_version_string: String,
+    pub fork_db_head_block_num: usize,
+    pub fork_db_head_block_id: String,
+    pub server_full_version_string: Option<String>,
 }
 
 impl GetInfo {
@@ -226,15 +226,15 @@ pub struct ActionIn {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TransactionInSigned {
     #[serde(with = "eosio_datetime_format")]
-    expiration: DateTime<Utc>,
-    ref_block_num: u16,
-    ref_block_prefix: u32,
-    max_net_usage_words: u32,
-    max_cpu_usage_ms: u8,
-    delay_sec: u32,
-    context_free_actions: Vec<String>,
+    pub expiration: DateTime<Utc>,
+    pub ref_block_num: u16,
+    pub ref_block_prefix: u32,
+    pub max_net_usage_words: u32,
+    pub max_cpu_usage_ms: u8,
+    pub delay_sec: u32,
+    pub context_free_actions: Vec<String>,
     pub actions: Vec<ActionIn>,
-    transaction_extensions: Vec<String>,
+    pub transaction_extensions: Vec<String>,
     pub signatures: Vec<String>, // KleosD 2.1 returns signatures here
 }
 
@@ -281,15 +281,15 @@ delay_sec should be 0 for normal things. (it's used in deferred txn's which aren
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TransactionIn {
     #[serde(with = "eosio_datetime_format")]
-    expiration: DateTime<Utc>,
-    ref_block_num: u16,
-    ref_block_prefix: u32,
-    max_net_usage_words: u32,
-    max_cpu_usage_ms: u8,
-    delay_sec: u32,
-    context_free_actions: Vec<String>,
+    pub expiration: DateTime<Utc>,
+    pub ref_block_num: u16,
+    pub ref_block_prefix: u32,
+    pub max_net_usage_words: u32,
+    pub max_cpu_usage_ms: u8,
+    pub delay_sec: u32,
+    pub context_free_actions: Vec<String>,
     pub actions: Vec<ActionIn>,
-    transaction_extensions: Vec<String>,
+    pub transaction_extensions: Vec<String>,
 }
 
 impl TransactionIn {
@@ -463,31 +463,31 @@ pub struct TransactionResponse {
 
 #[derive(Debug, Deserialize)]
 pub struct TransactionReceipt {
-    cpu_usage_us: usize,
-    net_usage_words: usize,
-    status: String,
+    pub cpu_usage_us: usize,
+    pub net_usage_words: usize,
+    pub status: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AccountRamDelta {
-    account: String,
-    delta: isize,
+    pub account: String,
+    pub delta: isize,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ActionReceipt {
-    receiver: String,
-    abi_sequence: usize,
-    recv_sequence: usize,
+    pub receiver: String,
+    pub abi_sequence: usize,
+    pub recv_sequence: usize,
     // auth_sequence: Vec< String|usize>
-    code_sequence: usize,
-    global_sequence: usize,
-    act_digest: String,
+    pub code_sequence: usize,
+    pub global_sequence: usize,
+    pub act_digest: String,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
-enum ActionACTData {
+pub enum ActionACTData {
     ActionACTDataSetCode {
         code: Option<String>,
         vmtype: usize,
@@ -504,53 +504,53 @@ enum ActionACTData {
 
 #[derive(Debug, Deserialize)]
 pub struct ActionACT {
-    authorization: Vec<Permission>,
-    name: String,
+    pub authorization: Vec<Permission>,
+    pub name: String,
 
     //  #[serde(with = "eosio_action_trace")]
     // data: HashMap<String,Value>,
-    account: String,
-    hex_data: String,
+    pub account: String,
+    pub hex_data: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ActionTrace {
-    account_ram_deltas: Vec<AccountRamDelta>,
-    console: Option<String>,
-    action_ordinal: isize,
+    pub account_ram_deltas: Vec<AccountRamDelta>,
+    pub console: Option<String>,
+    pub action_ordinal: isize,
     // inline_traces:[],
-    receipt: ActionReceipt,
-    act: ActionACT,
-    context_free: bool,
-    producer_block_id: Option<String>,
-    except: Option<String>,
-    trx_id: String,
-    block_num: usize,
-    error_code: Option<String>,
+    pub receipt: ActionReceipt,
+    pub act: ActionACT,
+    pub context_free: bool,
+    pub producer_block_id: Option<String>,
+    pub except: Option<String>,
+    pub trx_id: String,
+    pub block_num: usize,
+    pub error_code: Option<String>,
     #[serde(with = "eosio_datetime_format")]
-    block_time: DateTime<Utc>,
-    closest_unnotified_ancestor_action_ordinal: usize,
-    elapsed: usize,
-    receiver: String,
+    pub block_time: DateTime<Utc>,
+    pub closest_unnotified_ancestor_action_ordinal: usize,
+    pub elapsed: usize,
+    pub receiver: String,
     //account_disk_deltas : [],
-    return_value: Option<String>,
+    pub return_value: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct TransactionProcessedResponse {
-    scheduled: bool,
-    error_code: Option<String>,
-    action_traces: Vec<ActionTrace>,
+    pub scheduled: bool,
+    pub error_code: Option<String>,
+    pub action_traces: Vec<ActionTrace>,
     pub block_num: usize,
-    producer_block_id: Option<String>,
-    except: Option<String>,
+    pub producer_block_id: Option<String>,
+    pub except: Option<String>,
     pub receipt: TransactionReceipt,
     pub id: String,
-    elapsed: usize,
-    net_usage: usize,
+    pub elapsed: usize,
+    pub net_usage: usize,
     #[serde(with = "eosio_datetime_format")]
-    block_time: DateTime<Utc>,
-    account_ram_delta: Option<String>,
+    pub block_time: DateTime<Utc>,
+    pub account_ram_delta: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -564,13 +564,13 @@ pub struct BlockTransactionAction {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BlockTransaction {
     #[serde(with = "eosio_datetime_format")]
-    expiration: DateTime<Utc>,
-    ref_block_num: u16,
-    ref_block_prefix: u32,
-    max_net_usage_words: u32,
-    max_cpu_usage_ms: u8,
-    delay_sec: u32,
-    context_free_actions: Vec<String>,
+    pub expiration: DateTime<Utc>,
+    pub ref_block_num: u16,
+    pub ref_block_prefix: u32,
+    pub max_net_usage_words: u32,
+    pub max_cpu_usage_ms: u8,
+    pub delay_sec: u32,
+    pub context_free_actions: Vec<String>,
     pub actions: Vec<BlockTransactionAction>,
 }
 
@@ -587,28 +587,28 @@ pub struct BlockTransactionTrx {
 
 #[derive(Debug, Deserialize)]
 pub struct BlockTransactions {
-    status: String,
-    cpu_usage_us: usize,
-    net_usage_words: usize,
+    pub status: String,
+    pub cpu_usage_us: usize,
+    pub net_usage_words: usize,
     pub trx: BlockTransactionTrx,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct GetBlock {
     #[serde(with = "eosio_datetime_format")]
-    timestamp: DateTime<Utc>,
-    producer: String,
-    confirmed: usize,
-    previous: String,
-    transaction_mroot: String,
-    action_mroot: String,
-    schedule_version: usize,
-    new_producers: Option<String>,
-    producer_signature: String,
+    pub timestamp: DateTime<Utc>,
+    pub producer: String,
+    pub confirmed: usize,
+    pub previous: String,
+    pub transaction_mroot: String,
+    pub action_mroot: String,
+    pub schedule_version: usize,
+    pub new_producers: Option<String>,
+    pub producer_signature: String,
     pub transactions: Vec<BlockTransactions>,
     pub id: String,
     pub block_num: usize,
-    ref_block_prefix: usize,
+    pub ref_block_prefix: usize,
 }
 
 #[derive(Debug, Deserialize)]

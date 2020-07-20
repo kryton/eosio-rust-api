@@ -4,106 +4,130 @@
     "types": [],
     "structs": [
         {
-            "name": "check2fa",
+            "name": "close",
             "base": "",
             "fields": [
                 {
-                    "name": "user",
+                    "name": "challenger",
                     "type": "name"
                 },
                 {
-                    "name": "property",
-                    "type": "name"
-                },
-                {
-                    "name": "server_key",
-                    "type": "public_key"
-                },
-                {
-                    "name": "user_key",
-                    "type": "public_key"
-                },
-                {
-                    "name": "server_auth",
-                    "type": "signature"
-                },
-                {
-                    "name": "bearer_auth",
-                    "type": "signature"
-                }
-            ]
-        },
-        {
-            "name": "config",
-            "base": "",
-            "fields": [
-                {
-                    "name": "srvkey",
-                    "type": "public_key"
-                }
-            ]
-        },
-        {
-            "name": "like",
-            "base": "",
-            "fields": [
-                {
-                    "name": "user",
+                    "name": "host",
                     "type": "name"
                 }
             ]
         },
         {
-            "name": "rent",
+            "name": "create",
             "base": "",
             "fields": [
                 {
-                    "name": "user",
+                    "name": "challenger",
                     "type": "name"
                 },
                 {
-                    "name": "property",
+                    "name": "host",
                     "type": "name"
                 }
             ]
         },
         {
-            "name": "setsrvkey",
+            "name": "game",
             "base": "",
             "fields": [
                 {
-                    "name": "server_key",
-                    "type": "public_key"
+                    "name": "challenger",
+                    "type": "name"
+                },
+                {
+                    "name": "host",
+                    "type": "name"
+                },
+                {
+                    "name": "turn",
+                    "type": "name"
+                },
+                {
+                    "name": "winner",
+                    "type": "name"
+                },
+                {
+                    "name": "board",
+                    "type": "uint8[]"
+                }
+            ]
+        },
+        {
+            "name": "move",
+            "base": "",
+            "fields": [
+                {
+                    "name": "challenger",
+                    "type": "name"
+                },
+                {
+                    "name": "host",
+                    "type": "name"
+                },
+                {
+                    "name": "by",
+                    "type": "name"
+                },
+                {
+                    "name": "row",
+                    "type": "uint16"
+                },
+                {
+                    "name": "column",
+                    "type": "uint16"
+                }
+            ]
+        },
+        {
+            "name": "restart",
+            "base": "",
+            "fields": [
+                {
+                    "name": "challenger",
+                    "type": "name"
+                },
+                {
+                    "name": "host",
+                    "type": "name"
+                },
+                {
+                    "name": "by",
+                    "type": "name"
                 }
             ]
         }
     ],
     "actions": [
         {
-            "name": "check2fa",
-            "type": "check2fa",
+            "name": "close",
+            "type": "close",
             "ricardian_contract": ""
         },
         {
-            "name": "like",
-            "type": "like",
+            "name": "create",
+            "type": "create",
             "ricardian_contract": ""
         },
         {
-            "name": "rent",
-            "type": "rent",
+            "name": "move",
+            "type": "move",
             "ricardian_contract": ""
         },
         {
-            "name": "setsrvkey",
-            "type": "setsrvkey",
+            "name": "restart",
+            "type": "restart",
             "ricardian_contract": ""
         }
     ],
     "tables": [
         {
-            "name": "config",
-            "type": "config",
+            "name": "games",
+            "type": "game",
             "index_type": "i64",
             "key_names": [],
             "key_types": []

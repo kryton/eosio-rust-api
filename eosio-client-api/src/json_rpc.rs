@@ -383,6 +383,7 @@ mod test {
 
     const TEST_WALLET_NAME: &str = "default";
     const TEST_ACCOUNT_NAME: &str = "fwonhjnefmps";
+    const TEST_ACCOUNT_NO_ABI: &str = "tafoacvsqlmw";
 
     //const TEST_HOST: &str = "https://eos.greymass.com";
     //const TEST_HOST: &str = "https://chain.wax.io";
@@ -616,6 +617,15 @@ mod test {
         Ok(())
     }
 
+    #[tokio::test]
+    async fn non_block_getabi() -> Result<()> {
+        let eos = EOSRPC::non_blocking(String::from(TEST_HOST)).await?;
+        let get_abi = eos.get_abi(TEST_ACCOUNT_NO_ABI).await?;
+        assert!(get_abi.abi.is_none());
+        let get_abi = eos.get_abi(TEST_ACCOUNT_NAME).await?;
+        assert!(get_abi.abi.is_some());
+        Ok(())
+    }
     #[tokio::test]
     async fn non_block_getblock() -> Result<()> {
         let eos = EOSRPC::non_blocking(String::from(TEST_HOST)).await?;

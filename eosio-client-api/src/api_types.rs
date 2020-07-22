@@ -168,7 +168,7 @@ pub struct Abi {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetAbi {
     pub account_name: String,
-    pub abi: Abi,
+    pub abi: Option<Abi>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

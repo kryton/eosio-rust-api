@@ -219,6 +219,10 @@ fn hex_to_bin_char(c: u8) -> u8 {
         let v: u8 = (c - b'a') + 10;
         return v;
     }
+    if c >= b'A' && c <= b'Z' {
+        let v: u8 = (c - b'A') + 10;
+        return v;
+    }
     if c >= b'0' && c <= b'9' {
         let v = c - b'0';
         return v;
@@ -478,6 +482,7 @@ mod test {
         let hex_str2 = "01002BAD64FF47";
         let hex_str3 = "ffffffff0faa";
         let hex_str4 = "ffffffffff0faa";
+        let hex_str3_mixed = "FFfffFff0fAa";
         let bin_str = hex_to_bin(&hex_str);
         let (val, bin_str_ex) = varuint32_from_bin(&bin_str)?;
         assert_eq!(999990, val);
@@ -501,6 +506,8 @@ mod test {
         let v: Result<(u64, Vec<u8>)> = varuint64_from_bin(&bin_str4);
         assert!(v.is_ok());
         assert_eq!(0x7f_ff_ff_ff_ff, v?.0);
+        let bin_str3_mixed = hex_to_bin(hex_str3_mixed);
+        assert_eq!(bin_str3,bin_str3_mixed);
 
         Ok(())
     }

@@ -1,6 +1,6 @@
 [package]
 name = "libabieos-sys"
-version = "0.3.4"
+version = "0.3.5"
 authors = ["Ian Holsman <ian@holsman.com.au>"]
 edition = "2018"
 build="build.rs"
@@ -23,6 +23,7 @@ documentation="https://docs.rs/libabieos-sys/"
 #
 #  export LLVM_CONFIG_PATH="/usr/local/Cellar/llvm@8/8.0.1_1/bin/llvm-config"
 #
+# note: on linux you may need to re-enable the -lstdc++ in build.rs
 
 [dependencies]
 error-chain = "0.12.2"

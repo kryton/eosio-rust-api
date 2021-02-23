@@ -11,5 +11,5 @@ fn main() {
     println!("cargo:rustc-link-lib=c++");
     println!("cargo:rustc-link-search={}/build", dst.display());
     println!("cargo:rustc-link-lib=abieos");
-    println!("cargo:rustc-link-lib=stdc++");
+//    println!("cargo:rustc-link-lib=stdc++");
 }

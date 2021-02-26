@@ -664,7 +664,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libabieos-sys"
-version = "0.3.5"
+version = "0.3.6"
 dependencies = [
  "chrono",
  "cmake",
@@ -673,6 +673,7 @@ dependencies = [
  "regex",
  "rust-embed",
  "serde",
+ "sys-info",
 ]
 
 [[package]]
@@ -1298,6 +1299,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-xid",
+]
+
+[[package]]
+name = "sys-info"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f3e7ba888a12ddcf0084e36ae4609b055845f38022d1946b67356fbc27d5795"
+dependencies = [
+ "cc",
+ "libc",
 ]
 
 [[package]]

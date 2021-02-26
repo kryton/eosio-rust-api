@@ -292,7 +292,7 @@ dependencies = [
 
 [[package]]
 name = "eosio-client"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "eosio-client-api",
  "eosio-client-keys",
@@ -302,7 +302,7 @@ dependencies = [
 
 [[package]]
 name = "eosio-client-api"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "base64",
  "base64-serde",

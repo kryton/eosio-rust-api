@@ -72,8 +72,8 @@ impl EOSRPC {
             Ok(response.text().await?)
         } else {
             let tx: &str = &response.text().await?;
-            let msg: ErrorReply = serde_json::from_str(tx).unwrap();
-            Err(ErrorKind::InvalidResponseStatus(msg.error).into())
+            Err(ErrorKind::InvalidResponseErr(tx.to_string()).into())
+
         }
     }
 

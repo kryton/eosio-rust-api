@@ -40,6 +40,10 @@ error_chain! {
             description("EOSIO API error")
             display("EOSIO API returned {}-{}({}) {:#?}", err.code, err.name,err.what,err.details)
         }
+        InvalidResponseErr(err:String) {
+            description("EOSIO API error")
+            display("EOSIO API returned {}", err)
+        }
         InvalidWASMFormat {
             description("WASM file has incorrect header")
             display("Invalid WASM file format")

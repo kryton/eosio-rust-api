@@ -377,6 +377,12 @@ pub struct ErrorReply {
     pub code: usize,
     pub message: String,
     pub error: ErrorInt,
+}#[derive(Debug, Deserialize, Serialize)]
+
+pub struct ErrorReply2 {
+    pub code: usize,
+    pub message: String,
+    pub error: ErrorInt,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

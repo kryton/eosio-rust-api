@@ -3,18 +3,6 @@ use chrono::{DateTime, Duration, Utc};
 use libabieos_sys::{eosio_datetime_format, ABIEOS};
 use serde::{Deserialize, Serialize};
 
-fn byte_to_char(x: u8) -> char {
-    (if x <= 9 { x + b'0' } else { x - 10 + b'a' }) as char
-}
-
-pub fn vec_u8_to_hex(out: &[u8]) -> Result<String> {
-    let mut str = String::with_capacity(out.len());
-    for x in out {
-        str.push(byte_to_char((x & 0xf0).checked_shr(4).unwrap_or(0)));
-        str.push(byte_to_char(x & 0x0f));
-    }
-    Ok(str)
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResourceLimit {

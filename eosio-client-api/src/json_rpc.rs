@@ -3,7 +3,7 @@ use crate::errors::{Error, ErrorKind, Result};
 use crate::wallet_types::Wallet;
 use crate::wasm::WASM;
 use eosio_client_keys::EOSPublicKey;
-use libabieos_sys::{AbiFiles, ABIEOS};
+use libabieos_sys::{AbiFiles, ABIEOS, vec_u8_to_hex};
 use reqwest::header::{HeaderValue, CONTENT_TYPE};
 use reqwest::Client;
 use reqwest::StatusCode;

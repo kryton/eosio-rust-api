@@ -10,8 +10,8 @@ use crate::errors::{ErrorKind, Result};
 use crate::json_rpc::EOSRPC;
 use eosio_client_keys::{EOSPrivateKey, EOSPublicKey};
 use serde_json::Value;
-
-use crate::api_types::{vec_u8_to_hex, TransactionIn, TransactionInSigned};
+use libabieos_sys::vec_u8_to_hex;
+use crate::api_types::{ TransactionIn, TransactionInSigned};
 
 const WALLET_UNLOCKED_EXCEPTION: usize = 3_120_007;
 #[allow(dead_code)]

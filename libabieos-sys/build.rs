@@ -9,12 +9,12 @@ fn main() {
         .build_target("abieos")
         .build();
     // let dst = cmake::build("lib/abieos");
-    println!("*********{}*********",sys_info::os_type().unwrap());
+    println!("*********{}*********", sys_info::os_type().unwrap());
 
     println!("cargo:rustc-link-search={}/build", dst.display());
     println!("cargo:rustc-link-lib=abieos");
     if sys_info::os_type().unwrap() == "Linux" {
-         println!("cargo:rustc-link-lib=stdc++");
+        println!("cargo:rustc-link-lib=stdc++");
     } else {
         println!("cargo:rustc-link-lib=c++");
     }

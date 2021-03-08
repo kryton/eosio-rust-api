@@ -18,11 +18,11 @@ mod errors {
 
 use crate::errors::{Error, Result};
 use chrono::Duration;
-use eosio_client_api::api_types::{vec_u8_to_hex, ActionIn, AuthorizationIn, GetInfo};
+use eosio_client_api::api_types::{ ActionIn, AuthorizationIn, GetInfo};
 use eosio_client_api::json_rpc::{create_setabi_action, create_setcode_action, AbiTrio, EOSRPC};
 use eosio_client_api::wallet_types::{get_wallet_pass, Wallet};
 use eosio_client_api::wasm::WASM;
-use libabieos_sys::ABIEOS;
+use libabieos_sys::{vec_u8_to_hex,ABIEOS};
 use std::{env, fs};
 //use serde_json::Value;
 use serde_json::json;

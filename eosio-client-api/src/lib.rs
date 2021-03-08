@@ -13,7 +13,7 @@ extern crate base64;
 extern crate bs58;
 extern crate eosio_client_keys;
 extern crate ripemd160;
-//mod abi;
+pub mod abi;
 pub mod api_types;
 pub mod json_rpc;
 mod numeric;

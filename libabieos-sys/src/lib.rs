@@ -12,6 +12,8 @@ use std::ffi::{CStr, CString};
 pub struct AbiFiles;
 
 include!("./bindings.rs");
+
+pub mod encodeABI;
 pub mod errors;
 
 //#[macro_use]
@@ -25,7 +27,11 @@ pub type ABIName = u64;
 pub struct ABIEOS {
     context: *mut abieos_context,
 }
-
+impl Default for ABIEOS {
+    fn default() -> Self {
+        ABIEOS::new()
+    }
+}
 impl ABIEOS {
     ///
     /// # Safety
@@ -178,6 +184,7 @@ impl ABIEOS {
                 let bin: *const ::std::os::raw::c_char = abieos_get_bin_data(self.context);
 
                 let v: &[u8] = std::slice::from_raw_parts(bin as *const u8, bin_size);
+                // deliberate clone here due to memory being able to be reused by abieos lib
                 let ve: Vec<u8> = v.to_vec().clone();
                 Ok(ve)
             },
@@ -215,15 +222,15 @@ impl ABIEOS {
     }
 }
 fn hex_to_bin_char(c: u8) -> u8 {
-    if c >= b'a' && c <= b'z' {
+    if (b'a'..=b'z').contains(&c) {
         let v: u8 = (c - b'a') + 10;
         return v;
     }
-    if c >= b'A' && c <= b'Z' {
+    if (b'A'..=b'Z').contains(&c) {
         let v: u8 = (c - b'A') + 10;
         return v;
     }
-    if c >= b'0' && c <= b'9' {
+    if (b'0'..=b'9').contains(&c) {
         let v = c - b'0';
         return v;
     }
@@ -507,7 +514,7 @@ mod test {
         assert!(v.is_ok());
         assert_eq!(0x7f_ff_ff_ff_ff, v?.0);
         let bin_str3_mixed = hex_to_bin(hex_str3_mixed);
-        assert_eq!(bin_str3,bin_str3_mixed);
+        assert_eq!(bin_str3, bin_str3_mixed);
 
         Ok(())
     }
@@ -529,4 +536,16 @@ mod test {
         }
         Ok(String::from_utf8(r.to_vec())?)
     }
+}
+fn byte_to_char(x: u8) -> char {
+    (if x <= 9 { x + b'0' } else { x - 10 + b'a' }) as char
+}
+
+pub fn vec_u8_to_hex(out: &[u8]) -> Result<String> {
+    let mut str = String::with_capacity(out.len());
+    for x in out {
+        str.push(byte_to_char((x & 0xf0).checked_shr(4).unwrap_or(0)));
+        str.push(byte_to_char(x & 0x0f));
+    }
+    Ok(str)
 }

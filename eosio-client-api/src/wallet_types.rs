@@ -101,6 +101,10 @@ impl Wallet {
                         eprintln!("{:#?}", k);
                         Err("Fail-Wallet Unlock".into())
                     }
+                },
+                ErrorKind::InvalidResponseErr(k) => {
+                    eprintln!("{:#?}", k);
+                    panic!("Wallet unlock Fail-Err");
                 }
                 _ => {
                     eprintln!("{:#?}", e);

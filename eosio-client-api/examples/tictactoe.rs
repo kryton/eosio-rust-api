@@ -322,8 +322,8 @@ fn get_args() -> Result<(String, String, String, String, String)> {
         if args.len() > 1 {
             &args[1]
         } else {
-            "http://127.0.0.1:8888"
-            //  "https://api.testnet.eos.io"
+            //"http://127.0.0.1:8888"
+              "https://api.testnet.eos.io"
         }
     };
     let wallet_url = {
@@ -380,7 +380,7 @@ async fn run() -> Result<bool> {
     upgrade_wasm(&wallet, &eos, &ttt_wasm, &ttt_abi, &account, &info).await?;
 
     // clears a game if there way one
-    let _trans_end = end_game(&wallet, &eos, &account, &player_host, &player_challenger);
+    let _trans_end = end_game(&wallet, &eos, &account, &player_host, &player_challenger).await;
 
     let trans_start = start_game(&wallet, &eos, &account, &player_host, &player_challenger).await?;
     println!("Started {:?}", trans_start);

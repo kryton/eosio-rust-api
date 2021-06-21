@@ -1,4 +1,5 @@
 use crate::api_types::ErrorInt;
+
 use error_chain::error_chain;
 
 impl From<Box<dyn std::error::Error>> for Error {
@@ -40,6 +41,8 @@ error_chain! {
             description("EOSIO API error")
             display("EOSIO API returned {}-{}({}) {:#?}", err.code, err.name,err.what,err.details)
         }
+
+
         InvalidResponseErr(err:String) {
             description("EOSIO API error")
             display("EOSIO API returned {}", err)
